@@ -31,9 +31,6 @@
 #include "consts.h"
 #include "sharedMemory.h"
 
-/** \brief return status on monitor initialization */
-int statusInitMon;
-
 /** \brief worker threads return status array */
 int *statusWorkers;
 
@@ -106,7 +103,7 @@ int main(int argc, char *argv[])
 	/* fill shared memory with files names */
 	fillSharedMem(argv);
 
-	/* generation of intervening entities threads */
+	/* generation of intervening entity threads */
 	for (int i = 0; i < nThreads; i++)
 	{
 		if (pthread_create(&tIdWorkers[i], NULL, worker, &workers[i]) != 0)		/* thread worker */

@@ -27,17 +27,11 @@
 
 #include "consts.h"
 
-/** \brief return status on monitor initialization */
-extern int statusInitMon;
-
 /** \brief worker threads return status array */
 extern int *statusWorkers;
 
 /** \brief main thread return status */
 extern int statusMain;
-
-/** \brief number of storage positions in the data transfer region */
-extern int nStorePos;
 
 /** \brief storage region */
 static struct SharedMemory sharedMemory;
