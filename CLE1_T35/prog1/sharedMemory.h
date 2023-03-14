@@ -37,18 +37,19 @@ extern void fillSharedMem(char** fileNames);
  *  Operation carried by main.
  */
 
-extern void printResults();
-
+extern void printResults(void);
+ 
 /**
- *  \brief Request a text chunk to process.
+ *  \brief Request a chunk of text from the current file.
  *
  *  Operation carried out by the worker.
  *
- *  \param buffer text buffer
- *  \param fileId file identification
- *  \param chunkSize chunk length
+ *  \param workerId woker id
+ *  \param buffer buffer to store the text chunk
+ *  \param fileId file identifier
+ *  \param chunkSize size of the requested chunk
  *
- *  \return true when got chunk
+ *	\return false if all files were parsed
  */
 
 extern bool requestChunk(int workerId, unsigned char* buffer, int* fileId, int* chunkSize);
@@ -58,8 +59,9 @@ extern bool requestChunk(int workerId, unsigned char* buffer, int* fileId, int* 
  *
  *  Operation carried by the worker.
  *
+ *  \param workerId worker id
  *  \param fileResult file result structure
- *  \param fileId file identification
+ *  \param fileId file identifier
  */
 
 extern void postResults(int workerId, struct FileResult fileResult, int* fileId);

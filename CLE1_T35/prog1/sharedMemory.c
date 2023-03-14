@@ -48,6 +48,9 @@ static pthread_mutex_t accessCR = PTHREAD_MUTEX_INITIALIZER;
 /** \brief flag which warrants that the data transfer region is initialized exactly once */
 static pthread_once_t init = PTHREAD_ONCE_INIT;
 
+/** \brief check if character is separator */
+static bool isSeparator(int c);
+
 /**
  *  \brief Initialization of the shared region.
  *
@@ -64,9 +67,11 @@ static void initialization(void)
 }
 
 /**
- *  \brief Fill the parameters of the shared region.
+ *  \brief Fill shared region.
  *
- *  Internal monitor operation.
+ *  Operation carried out by main.
+ *
+ *  \param fileNames array of file names to be proceced
  */
 
 void fillSharedMem(char** fileNames)
@@ -151,6 +156,12 @@ void fillSharedMem(char** fileNames)
 	}
 }
 
+/**
+ *  \brief Print file results.
+ *
+ *  Operation carried by main.
+ */
+
 void printResults(void)
 {
 	if ((statusMain = pthread_mutex_lock (&accessCR)) != 0)							/* enter monitor */
@@ -163,8 +174,16 @@ void printResults(void)
 	pthread_once(&init, initialization);                                       		/* internal data initialization */
 	
 	/* print results */
-	
-	// ...
+	for (int i = 0; i < sharedMemory.totalFiles; i++)
+	{
+		int* vowels = sharedMemory.fileResults[i].vowels;
+		
+		printf("File name: %s\n", sharedMemory.fileResults[i].fileName);
+		printf("Total number of words = %d\n", sharedMemory.fileResults[i].nWords);
+		printf("Number of words with an\n");
+		printf("\tA\tE\tI\tO\tU\tY\n");
+		printf("\t%d\t%d\t%d\t%d\t%d\t%d\n\n", vowels[A], vowels[E], vowels[I], vowels[O], vowels[U], vowels[Y]);
+	}
 	
 	if ((statusMain = pthread_mutex_unlock (&accessCR)) != 0)						/* exit monitor */
 	{
@@ -174,6 +193,19 @@ void printResults(void)
 		pthread_exit(&statusMain);
 	}
 }
+
+/**
+ *  \brief Request a chunk of text from the current file.
+ *
+ *  Operation carried out by the worker.
+ *
+ *  \param workerId woker id
+ *  \param buffer buffer to store the text chunk
+ *  \param fileId file identifier
+ *  \param chunkSize size of the requested chunk
+ *
+ *	\return false if all files were parsed
+ */
 
 bool requestChunk(int workerId, unsigned char* buffer, int* fileId, int* chunkSize)
 {	
@@ -238,29 +270,113 @@ bool requestChunk(int workerId, unsigned char* buffer, int* fileId, int* chunkSi
 	/* the file still has content, check if we are in the middle of a word */
 	else
 	{
-		int i, j = 0;
-		unsigned char c;
-		for (i = *chunkSize - 1; i >= 0; i--)
+		long currentFilePos;
+		int c = 0, j = 0, k = 0;
+		char cbuffer[4] = "";
+		
+		// check for uncomplete utf8 character
+		for (int i = *chunkSize - 1; i >= 0; i--)
 		{
-			j++;
-			c = buffer[i];
-			if ((c == 0x20 || c == 0x9 || c == 0xA || c == 0xD) || (c == '-' || c == '[' || c == ']' || c == '(' || c == ')') || (c == '.' || c == ',' || c == ':' || c == ';' || c == '?' || c == '!'))
+			// if the character is ascii, we can continue
+			if (j == 0 && (buffer[i] & 0x80) == 0)
+			{
+				//printf("ascii char, all good\n");
 				break;
+			}
+			
+			// get how many bytes the utf-8 char occupies
+			int bytes;
+			for (bytes = 1; buffer[i] & (0x80 >> bytes); bytes++);
+			
+			// first utf8 byte, check if the buffer has all its content
+			if (bytes > 1)
+			{
+				//printf("utf-8 char, checking!\n");
+				
+				// uncomplete utf-8 char, backtrack the buffer
+				if (bytes > j)
+				{
+					printf("uncomplete utf-8 char, backtracking buffer");
+					if ((currentFilePos = ftell(sharedMemory.currentFile)) == -1L)
+					{
+						fprintf(stderr, "error on telling text file \"%s\"\n", sharedMemory.fileNames[sharedMemory.fileId]);
+						statusWorkers[workerId] = EXIT_FAILURE;
+						pthread_exit(&statusWorkers[workerId]);
+					}
+					if (fseek(sharedMemory.currentFile, currentFilePos - (j + 1), SEEK_SET) != 0)
+					{
+						fprintf(stderr, "error on seeking text file \"%s\"\n", sharedMemory.fileNames[sharedMemory.fileId]);
+						statusWorkers[workerId] = EXIT_FAILURE;
+						pthread_exit(&statusWorkers[workerId]);
+					}
+					*chunkSize -= (j + 1);
+				}
+				break;
+			}
+			j++;
 		}
 		
-		// TODO(L1fer): check this next step is being correctly done (i or j do not need an increment or decrement) and if the above solution is valid
+		// check for separation character
+		j = 0;
+		for (int i = *chunkSize - 1; i >= 0; i--)
+		{
+			cbuffer[j++] = buffer[i];
+			
+			// character is ascii, check if it is separator
+			if ((buffer[i] & 0x80) == 0)
+			{
+				j = 0;
+				if (isSeparator(buffer[i]))
+				{
+					//printf("ascci char is separator\n");
+					buffer[i] = '\0';
+					break;
+				}
+			}
+			
+			// get how many bytes the current utf-8 char occupies
+			int bytes;
+			for (bytes = 1; buffer[i] & (0x80 >> bytes); bytes++);
+			
+			// utf8 char first byte
+			if (bytes > 1)
+			{
+				//printf("checking utf-8 character\n");
+				for (int l = bytes - 1; l >= 0; l--)
+					c = (c << 8) | cbuffer[l];
+				
+				if (isSeparator(buffer[i]))
+				{
+					//printf("utf-8 char is separator\n");
+					buffer[i] = '\0';
+					break;
+				}
+				
+				c = 0;
+			}
+			k++;
+		}
 		
-		buffer[i] = '\0';
-		*chunkSize = i;
-		if (fseek(sharedMemory.currentFile, ftell(sharedMemory.currentFile) - j, SEEK_SET) != 0)
+		//printf("1 chunkSize = %d\n", *chunkSize);
+		
+		if ((currentFilePos = ftell(sharedMemory.currentFile)) == -1L)
+		{
+			fprintf(stderr, "error on telling text file \"%s\"\n", sharedMemory.fileNames[sharedMemory.fileId]);
+			statusWorkers[workerId] = EXIT_FAILURE;
+			pthread_exit(&statusWorkers[workerId]);
+		}
+		if (fseek(sharedMemory.currentFile, currentFilePos - (k + 1), SEEK_SET) != 0)
 		{
 			fprintf(stderr, "error on seeking text file \"%s\"\n", sharedMemory.fileNames[sharedMemory.fileId]);
 			statusWorkers[workerId] = EXIT_FAILURE;
 			pthread_exit(&statusWorkers[workerId]);
 		}
+		*chunkSize -= (k + 1);
+		
+		//printf("2 chunkSize = %d\n", *chunkSize);
 	}
 	
-	printf("%s\n=========================================\n", buffer);
+	//printf("%s\n=========================================\n", buffer);
 	
 	if ((statusWorkers[workerId] = pthread_mutex_unlock (&accessCR)) != 0)			/* exit monitor */
 	{
@@ -273,6 +389,34 @@ bool requestChunk(int workerId, unsigned char* buffer, int* fileId, int* chunkSi
 	return true;
 }
 
+/**
+ *  \brief Check if character is seperator.
+ *
+ *  Auxilar function.
+ *
+ *  \param c character
+ *
+ *	\return true if character is separator
+ */
+
+static bool isSeparator(int c)
+{
+	if ((c == 0x20 || c == 0x9 || c == 0xA || c == 0xD) || (c == '-' || c == 0x22 || c == 0xE2809C || c == 0xE2809D || c == '[' || c == ']' || c == '(' || c == ')') || (c == '.' || c == ',' || c == ':' || c == ';' || c == '?' || c == '!' || c == 0xE28093 || c == 0xE280A6))
+		return true;
+	
+	return false;
+}
+
+/**
+ *  \brief Save processed results in shared memory.
+ *
+ *  Operation carried by the worker.
+ *
+ *  \param workerId worker id
+ *  \param fileResult file result structure
+ *  \param fileId file identifier
+ */
+
 void postResults(int workerId, struct FileResult fileResult, int* fileId)
 {
 	if ((statusWorkers[workerId] = pthread_mutex_lock (&accessCR)) != 0)			/* enter monitor */
@@ -282,11 +426,12 @@ void postResults(int workerId, struct FileResult fileResult, int* fileId)
 		statusWorkers[workerId] = EXIT_FAILURE;
 		pthread_exit(&statusWorkers[workerId]);
 	}
-	pthread_once(&init, initialization);                                           /* internal data initialization */
+	pthread_once(&init, initialization);                                           	/* internal data initialization */
 	
 	/* post obtained results */
-	
-	// ...
+	sharedMemory.fileResults[*fileId].nWords += fileResult.nWords;
+	for (int i = 0; i < 6; i++)
+		sharedMemory.fileResults[*fileId].vowels[i] += fileResult.vowels[i];
 	
 	if ((statusWorkers[workerId] = pthread_mutex_unlock (&accessCR)) != 0)			/* exit monitor */
 	{
