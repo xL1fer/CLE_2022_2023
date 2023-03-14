@@ -29,7 +29,7 @@
  *  \param fileNames array of file names to be proceced
  */
 
-extern void fillSharedMem(char* fileNames[]);
+extern void fillSharedMem(char** fileNames);
 
 /**
  *  \brief Print file results.
@@ -51,7 +51,7 @@ extern void printResults();
  *  \return true when got chunk
  */
 
-extern bool requestChunk(char* buffer, int fileId, int* chunkSize);
+extern bool requestChunk(int workerId, unsigned char* buffer, int* fileId, int* chunkSize);
 
 /**
  *  \brief Save processed results in shared memory.
@@ -62,6 +62,6 @@ extern bool requestChunk(char* buffer, int fileId, int* chunkSize);
  *  \param fileId file identification
  */
 
-extern void postResults(struct FileResults fileResult, int fileId);
+extern void postResults(int workerId, struct FileResult fileResult, int* fileId);
 
 #endif /* SHAREDMEMORY_H */

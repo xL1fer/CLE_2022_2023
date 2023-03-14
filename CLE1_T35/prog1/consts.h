@@ -17,7 +17,7 @@
 #define  MAX_CHUNK_SIZE           4096
 
 /** \brief file results structure */
-struct FileResults {
+struct FileResult {
 	int nWords;
 	int vowels[6];
 	char* fileName;
@@ -25,10 +25,12 @@ struct FileResults {
 
 /** \brief shared region structure */
 struct SharedMemory {
-	struct FileResults* fileResults;
-	char* fileNames[];
+	struct FileResult* fileResults;
+	char** fileNames;
 	int fileId;
+	int totalFiles;
 	int chunkSize;
+	bool openFile;
 	FILE* currentFile;
 };
 
