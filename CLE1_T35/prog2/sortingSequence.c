@@ -43,11 +43,16 @@ int statusDistributor;
 /** \brief worker threads return status array */
 int *statusWorkers;
 
+/** \brief distributor life cycle routine */
+static void *distributor(void *id);
+
 /** \brief worker life cycle routine */
 static void *worker(void *id);
 
 /** \brief execution time measurement */
 static double get_delta_time(void);
+
+static void sortSequence(int* integerSequence, int* subSequenceLen, int* startOffset, int* endOffset);
 
 /**
  *  \brief Main thread.
@@ -63,6 +68,13 @@ static double get_delta_time(void);
 
 int main(int argc, char *argv[])
 {
+	// no file name was provided
+	if (argc < 2)
+	{
+		fprintf(stderr, "no file name provided\n");
+		exit(EXIT_FAILURE);
+	}
+	
 	int nWorkers = 4;
 	
 	if ((statusWorkers = malloc (nWorkers * sizeof (int))) == NULL)
@@ -74,7 +86,6 @@ int main(int argc, char *argv[])
 	pthread_t *tIdWorkers;			/* workers internal thread id array */
 	pthread_t tIdDistributor;		/* distributor internal thread id thread */
 	unsigned int *workers;			/* workers application defined thread id array */
-	unsigned int distributor;		/* distributor application defined thread id */
 	int *pStatus;					/* pointer to execution status */
 
 	/* initializing the application defined thread id arrays for the workers */
@@ -88,26 +99,24 @@ int main(int argc, char *argv[])
 	for (int i = 0; i < nWorkers; i++)
 		workers[i] = i;
 	
-	distributor = 0;
-	
 	(void) get_delta_time();
 	
 	/* fill shared memory with file name */
-	fillSharedMem("test");
+	fillFileName(argv[1]);
 
 	/* generation of intervening entity threads */
-	if (pthread_create(&tIdDistributor, NULL, worker, &distributor) != 0)		/* thread distributor */
+	if (pthread_create(&tIdDistributor, NULL, distributor, 0) != 0)	/* thread distributor */
 	{
-		perror ("error on creating thread distributor");
-		exit (EXIT_FAILURE);
+		perror("error on creating thread distributor");
+		exit(EXIT_FAILURE);
 	}
 	
 	for (int i = 0; i < nWorkers; i++)
 	{
 		if (pthread_create(&tIdWorkers[i], NULL, worker, &workers[i]) != 0)		/* thread worker */
 		{
-			perror ("error on creating thread worker");
-			exit (EXIT_FAILURE);
+			perror("error on creating thread worker");
+			exit(EXIT_FAILURE);
 		}
 	}
 
@@ -115,7 +124,7 @@ int main(int argc, char *argv[])
 	if (pthread_join(tIdDistributor, (void *) &pStatus) != 0)					/* thread distributor */
 	{
 		perror("error on waiting for thread distributor");
-		exit (EXIT_FAILURE);
+		exit(EXIT_FAILURE);
 	}
 	printf("thread distributor has terminated: ");
 	printf("its status was %d\n", *pStatus);
@@ -125,13 +134,16 @@ int main(int argc, char *argv[])
 		if (pthread_join(tIdWorkers[i], (void *) &pStatus) != 0)				/* thread worker */
 		{
 			perror("error on waiting for thread worker");
-			exit (EXIT_FAILURE);
+			exit(EXIT_FAILURE);
 		}
-		printf("thread workers, with id %u, has terminated: ", i);
+		printf("thread worker, with id %u, has terminated: ", i);
 		printf("its status was %d\n", *pStatus);
 	}
 	
-	printf ("\nElapsed time = %.6f s\n", get_delta_time());
+	/* validate sorted sequence */
+	validateArray();
+	
+	printf("\nElapsed time = %.6f s\n", get_delta_time());
 
 	exit(EXIT_SUCCESS);
 }
@@ -146,17 +158,13 @@ int main(int argc, char *argv[])
 
 static void *distributor(void *par)
 {
-	unsigned int id = *((unsigned int *) par);									/* worker id */
+	//unsigned int id = *((unsigned int *) par);									/* distributor id */
+	
+	readIntegerSequence();
+	while (assignWork());
 
-	/*
-	while (true)
-	{
-
-	}
-	*/
-
-	statusWorkers[id] = EXIT_SUCCESS;
-	pthread_exit(&statusWorkers[id]);
+	statusDistributor = EXIT_SUCCESS;
+	pthread_exit(&statusDistributor);
 }
 
 /**
@@ -170,13 +178,23 @@ static void *distributor(void *par)
 static void *worker(void *par)
 {
 	unsigned int id = *((unsigned int *) par);									/* worker id */
+	
+	int* integerSequence = 0;
+	int subSequenceLen = 0;
+	int startOffset = 0;
+	int endOffset = 0;
+	int workLeft = 0;
 
-	/*
-	while (true)
+	while ((integerSequence = requestWork(id, integerSequence, &subSequenceLen, &startOffset, &endOffset, &workLeft)))
 	{
-
+		if (workLeft == 0)
+			break;
+		//printf("thread %d got work! subSequenceLen = %d; startOffset = %d; endOffset = %d\n", id, subSequenceLen, startOffset, endOffset);
+		
+		//printf("[Worker %d] working!\n", id);
+		sortSequence(integerSequence, &subSequenceLen, &startOffset, &endOffset);
+		informWork(id);
 	}
-	*/
 
 	statusWorkers[id] = EXIT_SUCCESS;
 	pthread_exit(&statusWorkers[id]);
@@ -193,11 +211,32 @@ static double get_delta_time(void)
 	static struct timespec t0, t1;
 
 	t0 = t1;
-	if(clock_gettime (CLOCK_MONOTONIC, &t1) != 0)
+	if(clock_gettime(CLOCK_MONOTONIC, &t1) != 0)
 	{
-		perror ("clock_gettime");
+		perror("clock_gettime");
 		exit(1);
 	}
 	return (double) (t1.tv_sec - t0.tv_sec) + 1.0e-9 * (double) (t1.tv_nsec - t0.tv_nsec);
 }
 
+static void sortSequence(int* integerSequence, int* subSequenceLen, int* startOffset, int* endOffset)
+{
+	int k = *subSequenceLen;
+	
+	for (int j = k / 2; j > 0; j /= 2) // j is halved at every iteration, with truncation of fractional parts
+	{
+		for (int i = *startOffset; i < *endOffset; i++)
+		{
+			int l = i ^ j;
+			if (l > i)
+			{
+				if ((((i & k) == 0) && (integerSequence[i] > integerSequence[l])) || (((i & k) != 0) && (integerSequence[i] < integerSequence[l])))
+				{
+					int temp = integerSequence[i];
+					integerSequence[i] = integerSequence[l];
+					integerSequence[l] = temp;
+				}
+			}
+		}
+	}
+}

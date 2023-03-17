@@ -16,8 +16,17 @@
 /** \brief shared region structure */
 struct SharedMemory {
 	char* fileName;
-	int* sortedSequence;
+	int* integerSequence;
 	FILE* filePointer;
+	int sequenceLen;
+
+	int maxRequests;
+	int curRequests;
+	int totalRequests;
+	int completeRequests;
+	
+	bool workAvailable;
+	bool workNeeded;
 };
 
 #endif /* CONSTS_H_ */

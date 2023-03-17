@@ -109,18 +109,18 @@ void fillSharedMem(char** fileNames)
 	{
 		char* subptr = ptr[i];
 
-		int nameSize;
-		for (nameSize = 0; subptr[nameSize] != 0; nameSize++);
+		int nameLen;
+		for (nameLen = 0; subptr[nameLen] != 0; nameLen++);
 		
 		/* alocate file name memory */
-		if (((sharedMemory.fileNames[i - 1] = malloc((nameSize + 1) * sizeof(char*))) == NULL))
+		if (((sharedMemory.fileNames[i - 1] = malloc((nameLen + 1) * sizeof(char))) == NULL))
 		{
 			fprintf(stderr, "error on allocating space to file name\n");
 			statusMain = EXIT_FAILURE;
 			pthread_exit(&statusMain);
 		}
 		/* alocate result file name memory */
-		if (((sharedMemory.fileResults[i - 1].fileName = malloc((nameSize + 1) * sizeof(char*))) == NULL))
+		if (((sharedMemory.fileResults[i - 1].fileName = malloc((nameLen + 1) * sizeof(char))) == NULL))
 		{
 			fprintf(stderr, "error on allocating space to result file name\n");
 			statusMain = EXIT_FAILURE;
@@ -128,7 +128,8 @@ void fillSharedMem(char** fileNames)
 		}
 		
 		/* fill file names and file results */
-		for (int j = 0; j < nameSize; j++)
+		nameLen++;		// include '\0' termination
+		for (int j = 0; j < nameLen; j++)
 		{
 			sharedMemory.fileNames[i - 1][j] = subptr[j];
 			sharedMemory.fileResults[i - 1].fileName[j] = subptr[j];

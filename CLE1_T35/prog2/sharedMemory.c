@@ -48,14 +48,14 @@ static pthread_mutex_t accessCR = PTHREAD_MUTEX_INITIALIZER;
 /** \brief flag which warrants that the data transfer region is initialized exactly once */
 static pthread_once_t init = PTHREAD_ONCE_INIT;
 
-/** \brief distributor synchronization point when the data transfer region is full */
-static pthread_cond_t fifoFull;
+/** \brief distributor synchronization point when waiting for work requests */
+static pthread_cond_t waitRequest;
 
-/** \brief consumers synchronization point when the data transfer region is empty */
-static pthread_cond_t fifoEmpty;
+/** \brief distributor synchronization point when waiting for work done */
+static pthread_cond_t waitCompletion;
 
-/** \brief consumers synchronization point when the data transfer region is empty */
-static pthread_cond_t fifoEmpty;
+/** \brief worker synchronization point when waiting for work */
+static pthread_cond_t waitAssignment;
 
 /**
  *  \brief Initialization of the shared region.
@@ -65,20 +65,32 @@ static pthread_cond_t fifoEmpty;
 
 static void initialization(void)
 {
+	sharedMemory.sequenceLen = 0;
 	
+	sharedMemory.maxRequests = 0;
+	sharedMemory.curRequests = 0;
+	sharedMemory.completeRequests = 0;
+	sharedMemory.totalRequests = 0;
+	
+	sharedMemory.workAvailable = false;
+	sharedMemory.workNeeded = true;
+	
+	pthread_cond_init (&waitRequest, NULL);				/* initialize distributor synchronization point */
+	pthread_cond_init (&waitCompletion, NULL);			/* initialize distributor synchronization point */
+	pthread_cond_init (&waitAssignment, NULL);			/* initialize workers synchronization point */
 }
 
 /**
- *  \brief Fill shared region.
+ *  \brief Fill file name.
  *
  *  Operation carried out by main.
  *
  *  \param fileNames array of file names to be proceced
  */
 
-void fillSharedMem(char** fileNames)
+void fillFileName(char* fileName)
 {	
-	if ((statusMain = pthread_mutex_lock (&accessCR)) != 0)							/* enter monitor */
+	if ((statusMain = pthread_mutex_lock(&accessCR)) != 0)							/* enter monitor */
 	{
 		errno = statusMain;															/* save error in errno */
 		perror("error on entering monitor(CF)");
@@ -87,16 +99,314 @@ void fillSharedMem(char** fileNames)
 	}
 	pthread_once(&init, initialization);                                       		/* internal data initialization */
 	
-	/* initialize files names */
+	/* initialize file name */
+	int nameLen;
+	for (nameLen = 0; fileName[nameLen] != 0; nameLen++);
 	
+	/* alocate file name memory */
+	if (((sharedMemory.fileName = malloc((nameLen + 1) * sizeof(char))) == NULL))
+	{
+		fprintf(stderr, "error on allocating space to file name\n");
+		statusMain = EXIT_FAILURE;
+		pthread_exit(&statusMain);
+	}
 	
-	printf("Shared memory filled!\n");
+	/* fill file name */
+	nameLen++;		// include '\0' termination
+	for (int i = 0; i < nameLen; i++)
+		sharedMemory.fileName[i] = fileName[i];
 	
-	if ((statusMain = pthread_mutex_unlock (&accessCR)) != 0)						/* exit monitor */
+	printf("File name parsed (%s)\n", sharedMemory.fileName);
+	
+	if ((statusMain = pthread_mutex_unlock(&accessCR)) != 0)						/* exit monitor */
 	{
 		errno = statusMain;															/* save error in errno */
 		perror("error on exiting monitor(CF)");
 		statusMain = EXIT_FAILURE;
 		pthread_exit(&statusMain);
 	}
+}
+
+void readIntegerSequence()
+{
+	if ((statusDistributor = pthread_mutex_lock(&accessCR)) != 0)							/* enter monitor */
+	{
+		errno = statusDistributor;															/* save error in errno */
+		perror("error on entering monitor(CF)");
+		statusDistributor = EXIT_FAILURE;
+		pthread_exit(&statusDistributor);
+	}
+	pthread_once(&init, initialization);                                       				/* internal data initialization */
+	
+	/* open binary file */
+	if ((sharedMemory.filePointer = fopen(sharedMemory.fileName, "rb")) == NULL)
+	{
+		fprintf(stderr, "error on opening file \"%s\"\n", sharedMemory.fileName);
+		statusDistributor = EXIT_FAILURE;
+		pthread_exit(&statusDistributor);
+	}
+	
+	/* get number of sequence elements */
+    if (fread(&sharedMemory.sequenceLen, sizeof(int), 1, sharedMemory.filePointer) == EOF)
+	{
+		fprintf(stderr, "error on reading integer sequence length\n");
+		statusDistributor = EXIT_FAILURE;
+		pthread_exit(&statusDistributor);
+	}
+    //printf("> Sequence length: %d\n", sharedMemory.sequenceLen);
+	sharedMemory.maxRequests = sharedMemory.sequenceLen / 2;
+	
+	/* alocate integer sequence memory */
+	if ((sharedMemory.integerSequence = malloc(sharedMemory.sequenceLen * sizeof(int))) == NULL)
+	{
+		fprintf(stderr, "error on allocating space to file name\n");
+		statusDistributor = EXIT_FAILURE;
+		pthread_exit(&statusDistributor);
+	}
+
+    /* get the sequence of integers */
+    for (int i = 0; i < sharedMemory.sequenceLen; i++)
+    {	
+		if (fread(sharedMemory.integerSequence + i, sizeof(int), 1, sharedMemory.filePointer) == EOF)
+		{
+			fprintf(stderr, "error on reading integer sequence length\n");
+			statusDistributor = EXIT_FAILURE;
+			pthread_exit(&statusDistributor);
+		}
+    }
+	
+	printf("[Distributor] integer sequence parsed\n");
+	
+	/* close binary file */
+	if (fclose(sharedMemory.filePointer) == EOF)
+	{
+		fprintf(stderr, "error on closing text file \"%s\"\n", sharedMemory.fileName);
+		statusDistributor = EXIT_FAILURE;
+		pthread_exit(&statusDistributor);
+	}
+	
+	if ((statusDistributor = pthread_mutex_unlock(&accessCR)) != 0)						/* exit monitor */
+	{
+		errno = statusDistributor;															/* save error in errno */
+		perror("error on exiting monitor(CF)");
+		statusDistributor = EXIT_FAILURE;
+		pthread_exit(&statusDistributor);
+	}
+}
+
+bool assignWork()
+{
+	if ((statusDistributor = pthread_mutex_lock(&accessCR)) != 0)							/* enter monitor */
+	{
+		errno = statusDistributor;															/* save error in errno */
+		perror("error on entering monitor(CF)");
+		statusDistributor = EXIT_FAILURE;
+		pthread_exit(&statusDistributor);
+	}
+	pthread_once(&init, initialization);                                       				/* internal data initialization */
+  
+	while (sharedMemory.totalRequests == 0 || sharedMemory.workAvailable)					/* wait while there are no work requests or no thread picked the current work */
+	{
+		if ((statusDistributor = pthread_cond_wait(&waitRequest, &accessCR)) != 0)
+		{
+			errno = statusDistributor;                            							/* save error in errno */
+			perror("error on waiting in waitRequest");
+			statusDistributor = EXIT_FAILURE;
+			pthread_exit(&statusDistributor);
+		}
+	}
+	
+	sharedMemory.totalRequests--;
+	
+	/* prepare work */
+	//int subSequenceLen = sharedMemory.sequenceLen / sharedMemory.maxRequests;
+	
+	sharedMemory.workAvailable = true;
+	sharedMemory.curRequests++;
+	
+	/* give work */
+	if ((statusDistributor = pthread_cond_signal(&waitAssignment)) != 0)
+	{
+		errno = statusDistributor;                            									/* save error in errno */
+		perror ("error on signaling waitAssignment");
+		statusDistributor = EXIT_FAILURE;
+		pthread_exit (&statusDistributor);
+	}
+	
+	/* if all iteration requests were completed wait for all work to be done and proceed to next iteration */
+	if (sharedMemory.curRequests == sharedMemory.maxRequests)
+	{
+		//sharedMemory.workNeeded = false;
+		
+		while (sharedMemory.completeRequests != sharedMemory.maxRequests)						/* wait while the current iteration work has not been completed */
+		{
+			if ((statusDistributor = pthread_cond_wait(&waitCompletion, &accessCR)) != 0)
+			{
+				errno = statusDistributor;                            							/* save error in errno */
+				perror ("error on waiting in waitCompletion");
+				statusDistributor = EXIT_FAILURE;
+				pthread_exit (&statusDistributor);
+			}
+		}
+		
+		sharedMemory.maxRequests /= 2;
+		sharedMemory.curRequests = 0;
+		sharedMemory.completeRequests = 0;
+		//sharedMemory.workNeeded = true;
+		
+		printf("[Distributor] waiting for work completion\n");
+	}
+	
+	/* check if all work is done */
+	if (sharedMemory.maxRequests < 1)
+	{
+		sharedMemory.workNeeded = false;
+		
+		/* inform there is no more work */
+		if ((statusDistributor = pthread_cond_signal(&waitAssignment)) != 0)
+		{
+			errno = statusDistributor;                            									/* save error in errno */
+			perror ("error on signaling waitAssignment");
+			statusDistributor = EXIT_FAILURE;
+			pthread_exit (&statusDistributor);
+		}
+		
+		if ((statusDistributor = pthread_mutex_unlock(&accessCR)) != 0)								/* exit monitor */
+		{
+			errno = statusDistributor;																/* save error in errno */
+			perror("error on exiting monitor(CF)");
+			statusDistributor = EXIT_FAILURE;
+			pthread_exit(&statusDistributor);
+		}
+		
+		return false;
+	}
+	
+	if ((statusDistributor = pthread_mutex_unlock(&accessCR)) != 0)								/* exit monitor */
+	{
+		errno = statusDistributor;																/* save error in errno */
+		perror("error on exiting monitor(CF)");
+		statusDistributor = EXIT_FAILURE;
+		pthread_exit(&statusDistributor);
+	}
+	
+	return true;
+}
+
+int* requestWork(int workerId, int* integerSequence, int* subSequenceLen, int* startOffset, int* endOffset, int* workLeft)
+{
+	if ((statusWorkers[workerId] = pthread_mutex_lock(&accessCR)) != 0)								/* enter monitor */
+	{
+		errno = statusWorkers[workerId];															/* save error in errno */
+		perror("error on entering monitor(CF)");
+		statusWorkers[workerId] = EXIT_FAILURE;
+		pthread_exit(&statusWorkers[workerId]);
+	}
+	pthread_once(&init, initialization);                                       						/* internal data initialization */
+	
+	/* request work */
+	sharedMemory.totalRequests++;
+	if ((statusWorkers[workerId] = pthread_cond_signal(&waitRequest)) != 0)
+	{
+		errno = statusWorkers[workerId];                         									/* save error in errno */
+		perror ("error on signaling waitRequest");
+		statusWorkers[workerId] = EXIT_FAILURE;
+		pthread_exit(&statusWorkers[workerId]);
+	}
+	
+	while (!sharedMemory.workAvailable)																/* wait while there is no work available */
+	{
+		/* check if all work is done */
+		if (!sharedMemory.workNeeded)
+		{
+			if ((statusDistributor = pthread_cond_signal(&waitAssignment)) != 0)
+			{
+				errno = statusDistributor;                            								/* save error in errno */
+				perror ("error on signaling waitAssignment");
+				statusDistributor = EXIT_FAILURE;
+				pthread_exit (&statusDistributor);
+			}
+			
+			if ((statusWorkers[workerId] = pthread_mutex_unlock(&accessCR)) != 0)					/* exit monitor */
+			{
+				errno = statusWorkers[workerId];													/* save error in errno */
+				perror("error on exiting monitor(CF)");
+				statusWorkers[workerId] = EXIT_FAILURE;
+				pthread_exit(&statusWorkers[workerId]);
+			}
+			
+			*workLeft = 0;
+			return sharedMemory.integerSequence;
+		}
+		
+		if ((statusWorkers[workerId] = pthread_cond_wait(&waitAssignment, &accessCR)) != 0)
+		{
+			errno = statusWorkers[workerId];                            							/* save error in errno */
+			perror ("error on waiting in waitAssignment");
+			statusWorkers[workerId] = EXIT_FAILURE;
+			pthread_exit (&statusWorkers[workerId]);
+		}
+	}
+	
+	/* get work */
+	integerSequence = sharedMemory.integerSequence;
+	*subSequenceLen = sharedMemory.sequenceLen / sharedMemory.maxRequests;
+	*startOffset = (sharedMemory.curRequests - 1) * (*subSequenceLen);
+	*endOffset = sharedMemory.curRequests * (*subSequenceLen) - 1;
+	
+	sharedMemory.workAvailable = false;
+	
+	if ((statusWorkers[workerId] = pthread_mutex_unlock(&accessCR)) != 0)							/* exit monitor */
+	{
+		errno = statusWorkers[workerId];															/* save error in errno */
+		perror("error on exiting monitor(CF)");
+		statusWorkers[workerId] = EXIT_FAILURE;
+		pthread_exit(&statusWorkers[workerId]);
+	}
+	
+	*workLeft = 1;
+	return sharedMemory.integerSequence;
+}
+
+void informWork(int workerId)
+{
+	if ((statusWorkers[workerId] = pthread_mutex_lock(&accessCR)) != 0)								/* enter monitor */
+	{
+		errno = statusWorkers[workerId];															/* save error in errno */
+		perror("error on entering monitor(CF)");
+		statusWorkers[workerId] = EXIT_FAILURE;
+		pthread_exit(&statusWorkers[workerId]);
+	}
+	pthread_once(&init, initialization);                                       						/* internal data initialization */
+	
+	/* inform work done */
+	sharedMemory.completeRequests++;
+	if ((statusWorkers[workerId] = pthread_cond_signal(&waitCompletion)) != 0)
+	{
+		errno = statusWorkers[workerId];                         									/* save error in errno */
+		perror ("error on signaling waitCompletion");
+		statusWorkers[workerId] = EXIT_FAILURE;
+		pthread_exit(&statusWorkers[workerId]);
+	}
+	
+	if ((statusWorkers[workerId] = pthread_mutex_unlock(&accessCR)) != 0)							/* exit monitor */
+	{
+		errno = statusWorkers[workerId];															/* save error in errno */
+		perror("error on exiting monitor(CF)");
+		statusWorkers[workerId] = EXIT_FAILURE;
+		pthread_exit(&statusWorkers[workerId]);
+	}
+}
+
+void validateArray()
+{
+    for (int i = 0; i < sharedMemory.sequenceLen - 1; i++)
+    {
+        if (sharedMemory.integerSequence[i] > sharedMemory.integerSequence[i + 1])
+        {
+            printf("Error in position %d between element %d and %d\n", i, sharedMemory.integerSequence[i], sharedMemory.integerSequence[i + 1]);
+            return;
+        }
+    }
+    printf("Everything is OK!\n");
 }
