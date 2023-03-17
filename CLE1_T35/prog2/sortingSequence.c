@@ -221,20 +221,45 @@ static double get_delta_time(void)
 
 static void sortSequence(int* integerSequence, int* subSequenceLen, int* startOffset, int* endOffset)
 {
-	int k = *subSequenceLen;
-	
-	for (int j = k / 2; j > 0; j /= 2) // j is halved at every iteration, with truncation of fractional parts
+	if (*subSequenceLen == MIN_SUBLEN)
 	{
-		for (int i = *startOffset; i < *endOffset; i++)
+		for (int k = 2; k <= *subSequenceLen; k *= 2) // k is doubled every iteration
 		{
-			int l = i ^ j;
-			if (l > i)
+			for (int j = k / 2; j > 0; j /= 2) // j is halved at every iteration, with truncation of fractional parts
 			{
-				if ((((i & k) == 0) && (integerSequence[i] > integerSequence[l])) || (((i & k) != 0) && (integerSequence[i] < integerSequence[l])))
+				for (int i = *startOffset; i < *endOffset; i++)
 				{
-					int temp = integerSequence[i];
-					integerSequence[i] = integerSequence[l];
-					integerSequence[l] = temp;
+					int l = i ^ j;
+					if (l > i)
+					{
+						if ((((i & k) == 0) && (integerSequence[i] > integerSequence[l])) || (((i & k) != 0) && (integerSequence[i] < integerSequence[l])))
+						{
+							int temp = integerSequence[i];
+							integerSequence[i] = integerSequence[l];
+							integerSequence[l] = temp;
+						}
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		int k = *subSequenceLen;
+		
+		for (int j = k / 2; j > 0; j /= 2) // j is halved at every iteration, with truncation of fractional parts
+		{
+			for (int i = *startOffset; i < *endOffset; i++)
+			{
+				int l = i ^ j;
+				if (l > i)
+				{
+					if ((((i & k) == 0) && (integerSequence[i] > integerSequence[l])) || (((i & k) != 0) && (integerSequence[i] < integerSequence[l])))
+					{
+						int temp = integerSequence[i];
+						integerSequence[i] = integerSequence[l];
+						integerSequence[l] = temp;
+					}
 				}
 			}
 		}

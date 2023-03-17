@@ -154,7 +154,7 @@ void readIntegerSequence()
 		pthread_exit(&statusDistributor);
 	}
     //printf("> Sequence length: %d\n", sharedMemory.sequenceLen);
-	sharedMemory.maxRequests = sharedMemory.sequenceLen / 2;
+	sharedMemory.maxRequests = sharedMemory.sequenceLen / MIN_SUBLEN;
 	
 	/* alocate integer sequence memory */
 	if ((sharedMemory.integerSequence = malloc(sharedMemory.sequenceLen * sizeof(int))) == NULL)
