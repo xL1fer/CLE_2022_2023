@@ -31,6 +31,8 @@
 #include "consts.h"
 #include "sharedMemory.h"
 
+#define nThreads 4
+
 /** \brief worker threads return status array */
 int *statusWorkers;
 
@@ -75,7 +77,7 @@ static int vowelOffset(int c);
 
 int main(int argc, char *argv[])
 {
-	int nThreads = 4;
+	//int nThreads = 4;
 	
 	if ((statusWorkers = malloc (nThreads * sizeof (int))) == NULL)
 	{

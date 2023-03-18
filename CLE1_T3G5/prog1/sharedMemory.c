@@ -213,7 +213,7 @@ bool requestChunk(int workerId, unsigned char* buffer, int* fileId, int* chunkSi
 	}
 	pthread_once(&init, initialization);											/* internal data initialization */
 	
-	/* all files were processed, return true to end worker threads */
+	/* all files were processed, return false to end worker threads */
 	if (sharedMemory.fileId >= sharedMemory.totalFiles)
 	{
 		if ((statusWorkers[workerId] = pthread_mutex_unlock (&accessCR)) != 0)		/* exit monitor */
