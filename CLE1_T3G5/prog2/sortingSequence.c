@@ -1,7 +1,7 @@
 /**
  *  \file countWords.h (implementation file)
  *
- *  \brief Problem name: Problem name: Sorting Integer Sequence.
+ *  \brief Problem name: Sorting Integer Sequence.
  *
  *  Synchronization based on monitors.
  *  Threads and the monitor are implemented using the pthread library which enables the creation of a
@@ -31,6 +31,8 @@
 #include "consts.h"
 #include "sharedMemory.h"
 
+#define nWorkers 4
+
 /** \brief return status on monitor initialization */
 int statusInitMon;
 
@@ -52,6 +54,7 @@ static void *worker(void *id);
 /** \brief execution time measurement */
 static double get_delta_time(void);
 
+/** \brief bitonic sort a sequence of integers */
 static void sortSequence(int* integerSequence, int* subSequenceLen, int* startOffset, int* endOffset);
 
 /**
@@ -75,7 +78,7 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 	
-	int nWorkers = 4;
+	//int nWorkers = 4;
 	
 	if ((statusWorkers = malloc (nWorkers * sizeof (int))) == NULL)
 	{
@@ -185,7 +188,7 @@ static void *worker(void *par)
 	int endOffset = 0;
 	int workLeft = 0;
 
-	while ((integerSequence = requestWork(id, integerSequence, &subSequenceLen, &startOffset, &endOffset, &workLeft)))
+	while ((integerSequence = requestWork(id, &subSequenceLen, &startOffset, &endOffset, &workLeft)))
 	{
 		if (workLeft == 0)
 			break;
@@ -218,6 +221,20 @@ static double get_delta_time(void)
 	}
 	return (double) (t1.tv_sec - t0.tv_sec) + 1.0e-9 * (double) (t1.tv_nsec - t0.tv_nsec);
 }
+
+/**
+ *  \brief Bitonic sort a sequence of integers.
+ *
+ *
+ *	Operation carried out by worker.
+ *
+ *	Addapted from https://en.wikipedia.org/wiki/Bitonic_sorter
+ *
+ *  \param integerSequence sequence to be sorted
+ *  \param subSequenceLen length of the sequence
+ *  \param startOffset sequence starting offset
+ *  \param endOffset sequence ending offset
+ */
 
 static void sortSequence(int* integerSequence, int* subSequenceLen, int* startOffset, int* endOffset)
 {

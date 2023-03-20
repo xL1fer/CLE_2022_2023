@@ -9,11 +9,13 @@
  *
  *  Critical region implemented as a monitor.
  *
- *  Definition of the operations carried out by main and the workers:
- *     \li fillSharedMem
- *     \li 
- *     \li 
- *     \li .
+ *  Definition of the operations carried out by main, distributor and the workers:
+ *     \li fillFileName
+ *     \li readIntegerSequence
+ *     \li assignWork
+ *     \li requestWork
+ *     \li informWork
+ *     \li validateArray.
  *
  *  \author Author Name - Month Year
  */
@@ -26,9 +28,6 @@
 #include <errno.h>
 
 #include "consts.h"
-
-/** \brief return status on monitor initialization */
-extern int statusInitMon;
 
 /** \brief main thread return status */
 extern int statusMain;
@@ -127,7 +126,15 @@ void fillFileName(char* fileName)
 	}
 }
 
-void readIntegerSequence()
+/**
+ *  \brief Read binary file integer sequence.
+ *
+ *  Operation carried out by distributor
+ *
+ *  \param fileNames array of file names to be proceced
+ */
+
+void readIntegerSequence(void)
 {
 	if ((statusDistributor = pthread_mutex_lock(&accessCR)) != 0)							/* enter monitor */
 	{
@@ -194,7 +201,15 @@ void readIntegerSequence()
 	}
 }
 
-bool assignWork()
+/**
+ *  \brief Read binary file integer sequence.
+ *
+ *  Operation carried out by distributor
+ *
+ *  \return true if there is more work to be done
+ */
+
+bool assignWork(void)
 {
 	if ((statusDistributor = pthread_mutex_lock(&accessCR)) != 0)							/* enter monitor */
 	{
@@ -293,7 +308,15 @@ bool assignWork()
 	return true;
 }
 
-int* requestWork(int workerId, int* integerSequence, int* subSequenceLen, int* startOffset, int* endOffset, int* workLeft)
+/**
+ *  \brief Request integer sequence to sort.
+ *
+ *  Operation carried out by worker
+ *
+ *  \return reference to the integer sequence
+ */
+
+int* requestWork(int workerId, int* subSequenceLen, int* startOffset, int* endOffset, int* workLeft)
 {
 	if ((statusWorkers[workerId] = pthread_mutex_lock(&accessCR)) != 0)								/* enter monitor */
 	{
@@ -349,7 +372,6 @@ int* requestWork(int workerId, int* integerSequence, int* subSequenceLen, int* s
 	}
 	
 	/* get work */
-	integerSequence = sharedMemory.integerSequence;
 	*subSequenceLen = sharedMemory.sequenceLen / sharedMemory.maxRequests;
 	*startOffset = (sharedMemory.curRequests - 1) * (*subSequenceLen);
 	*endOffset = sharedMemory.curRequests * (*subSequenceLen) - 1;
@@ -367,6 +389,14 @@ int* requestWork(int workerId, int* integerSequence, int* subSequenceLen, int* s
 	*workLeft = 1;
 	return sharedMemory.integerSequence;
 }
+
+/**
+ *  \brief Inform that the assigned sequence is sorted.
+ *
+ *  Operation carried out by worker
+ *
+ *  \param workerId id of the worker informing the work is done
+ */
 
 void informWork(int workerId)
 {
@@ -398,7 +428,13 @@ void informWork(int workerId)
 	}
 }
 
-void validateArray()
+/**
+ *  \brief Verify if the integer sequence is sorted.
+ *
+ *  Operation carried out by main
+ */
+
+void validateArray(void)
 {
     for (int i = 0; i < sharedMemory.sequenceLen - 1; i++)
     {

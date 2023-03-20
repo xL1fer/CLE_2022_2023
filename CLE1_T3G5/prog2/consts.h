@@ -14,7 +14,7 @@
 /* Generic parameters */
 
 /** \brief subsequence length at which the initial work will start (must be power of 2) */
-#define MIN_SUBLEN 32
+#define MIN_SUBLEN 2	// 128
 
 /** \brief shared region structure */
 struct SharedMemory {

@@ -1,7 +1,7 @@
 /**
  *  \file sortingSequence.h (interface file)
  *
- *  \brief Problem name: Problem name: Sorting Integer Sequence.
+ *  \brief Problem name: Sorting Integer Sequence.
  *
  *  Synchronization based on monitors.
  *  Threads and the monitor are implemented using the pthread library which enables the creation of a
