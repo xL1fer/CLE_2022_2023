@@ -34,6 +34,14 @@
 extern void fillFileName(char* fileName);
 
 /**
+ *  \brief Verify if the integer sequence is sorted.
+ *
+ *  Operation carried out by main
+ */
+
+extern void validateArray(void);
+
+/**
  *  \brief Read binary file integer sequence.
  *
  *  Operation carried out by distributor
@@ -72,13 +80,5 @@ extern int* requestWork(int workerId, int* subSequenceLen, int* startOffset, int
  */
 
 extern void informWork(int workerId);
-
-/**
- *  \brief Verify if the integer sequence is sorted.
- *
- *  Operation carried out by main
- */
-
-extern void validateArray(void);
 
 #endif /* SHAREDMEMORY_H */

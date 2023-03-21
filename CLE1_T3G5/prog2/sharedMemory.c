@@ -127,6 +127,51 @@ void fillFileName(char* fileName)
 }
 
 /**
+ *  \brief Verify if the integer sequence is sorted.
+ *
+ *  Operation carried out by main
+ */
+
+void validateArray(void)
+{
+	if ((statusWorkers[workerId] = pthread_mutex_lock(&accessCR)) != 0)								/* enter monitor */
+	{
+		errno = statusWorkers[workerId];															/* save error in errno */
+		perror("error on entering monitor(CF)");
+		statusWorkers[workerId] = EXIT_FAILURE;
+		pthread_exit(&statusWorkers[workerId]);
+	}
+	pthread_once(&init, initialization);                                       						/* internal data initialization */
+	
+    for (int i = 0; i < sharedMemory.sequenceLen - 1; i++)
+    {
+        if (sharedMemory.integerSequence[i] > sharedMemory.integerSequence[i + 1])
+        {
+            printf("Error in position %d between element %d and %d\n", i, sharedMemory.integerSequence[i], sharedMemory.integerSequence[i + 1]);
+			
+			if ((statusWorkers[workerId] = pthread_mutex_unlock(&accessCR)) != 0)							/* exit monitor */
+			{
+				errno = statusWorkers[workerId];															/* save error in errno */
+				perror("error on exiting monitor(CF)");
+				statusWorkers[workerId] = EXIT_FAILURE;
+				pthread_exit(&statusWorkers[workerId]);
+			}
+			
+            return;
+        }
+    }
+    printf("Everything is OK!\n");
+	
+	if ((statusWorkers[workerId] = pthread_mutex_unlock(&accessCR)) != 0)							/* exit monitor */
+	{
+		errno = statusWorkers[workerId];															/* save error in errno */
+		perror("error on exiting monitor(CF)");
+		statusWorkers[workerId] = EXIT_FAILURE;
+		pthread_exit(&statusWorkers[workerId]);
+	}
+}
+
+/**
  *  \brief Read binary file integer sequence.
  *
  *  Operation carried out by distributor
@@ -426,23 +471,4 @@ void informWork(int workerId)
 		statusWorkers[workerId] = EXIT_FAILURE;
 		pthread_exit(&statusWorkers[workerId]);
 	}
-}
-
-/**
- *  \brief Verify if the integer sequence is sorted.
- *
- *  Operation carried out by main
- */
-
-void validateArray(void)
-{
-    for (int i = 0; i < sharedMemory.sequenceLen - 1; i++)
-    {
-        if (sharedMemory.integerSequence[i] > sharedMemory.integerSequence[i + 1])
-        {
-            printf("Error in position %d between element %d and %d\n", i, sharedMemory.integerSequence[i], sharedMemory.integerSequence[i + 1]);
-            return;
-        }
-    }
-    printf("Everything is OK!\n");
 }
