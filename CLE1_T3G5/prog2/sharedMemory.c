@@ -1,5 +1,5 @@
 /**
- *  \file sharedMemory.h (implementation file)
+ *  \file sharedMemory.c (implementation file)
  *
  *  \brief Problem name: Sorting Integer Sequence.
  *

@@ -1,5 +1,5 @@
 /**
- *  \file countWords.h (implementation file)
+ *  \file sortingSequence.h (implementation file)
  *
  *  \brief Problem name: Sorting Integer Sequence.
  *
