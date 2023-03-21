@@ -134,14 +134,14 @@ void fillFileName(char* fileName)
 
 void validateArray(void)
 {
-	if ((statusWorkers[workerId] = pthread_mutex_lock(&accessCR)) != 0)								/* enter monitor */
+	if ((statusMain = pthread_mutex_lock(&accessCR)) != 0)							/* enter monitor */
 	{
-		errno = statusWorkers[workerId];															/* save error in errno */
+		errno = statusMain;															/* save error in errno */
 		perror("error on entering monitor(CF)");
-		statusWorkers[workerId] = EXIT_FAILURE;
-		pthread_exit(&statusWorkers[workerId]);
+		statusMain = EXIT_FAILURE;
+		pthread_exit(&statusMain);
 	}
-	pthread_once(&init, initialization);                                       						/* internal data initialization */
+	pthread_once(&init, initialization);                                       		/* internal data initialization */
 	
     for (int i = 0; i < sharedMemory.sequenceLen - 1; i++)
     {
@@ -149,12 +149,12 @@ void validateArray(void)
         {
             printf("Error in position %d between element %d and %d\n", i, sharedMemory.integerSequence[i], sharedMemory.integerSequence[i + 1]);
 			
-			if ((statusWorkers[workerId] = pthread_mutex_unlock(&accessCR)) != 0)							/* exit monitor */
+			if ((statusMain = pthread_mutex_unlock(&accessCR)) != 0)						/* exit monitor */
 			{
-				errno = statusWorkers[workerId];															/* save error in errno */
+				errno = statusMain;															/* save error in errno */
 				perror("error on exiting monitor(CF)");
-				statusWorkers[workerId] = EXIT_FAILURE;
-				pthread_exit(&statusWorkers[workerId]);
+				statusMain = EXIT_FAILURE;
+				pthread_exit(&statusMain);
 			}
 			
             return;
@@ -162,12 +162,12 @@ void validateArray(void)
     }
     printf("Everything is OK!\n");
 	
-	if ((statusWorkers[workerId] = pthread_mutex_unlock(&accessCR)) != 0)							/* exit monitor */
+	if ((statusMain = pthread_mutex_unlock(&accessCR)) != 0)						/* exit monitor */
 	{
-		errno = statusWorkers[workerId];															/* save error in errno */
+		errno = statusMain;															/* save error in errno */
 		perror("error on exiting monitor(CF)");
-		statusWorkers[workerId] = EXIT_FAILURE;
-		pthread_exit(&statusWorkers[workerId]);
+		statusMain = EXIT_FAILURE;
+		pthread_exit(&statusMain);
 	}
 }
 
