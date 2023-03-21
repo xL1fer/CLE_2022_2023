@@ -192,11 +192,16 @@ static void *worker(void *par)
 	{
 		if (workLeft == 0)
 			break;
+		
+		//printf("Worker %d working!\n", id); 
+		//usleep((unsigned int) 10000000);
+		
 		//printf("thread %d got work! subSequenceLen = %d; startOffset = %d; endOffset = %d\n", id, subSequenceLen, startOffset, endOffset);
 		
 		//printf("[Worker %d] working!\n", id);
 		sortSequence(integerSequence, &subSequenceLen, &startOffset, &endOffset);
 		informWork(id);
+		//printf("Worker %d finished!\n", id); 
 	}
 
 	statusWorkers[id] = EXIT_SUCCESS;

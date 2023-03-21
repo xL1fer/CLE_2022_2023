@@ -423,6 +423,15 @@ int* requestWork(int workerId, int* subSequenceLen, int* startOffset, int* endOf
 	
 	sharedMemory.workAvailable = false;
 	
+	/* signal that the work was taken */
+	if ((statusWorkers[workerId] = pthread_cond_signal(&waitRequest)) != 0)
+	{
+		errno = statusWorkers[workerId];                         									/* save error in errno */
+		perror ("error on signaling waitRequest");
+		statusWorkers[workerId] = EXIT_FAILURE;
+		pthread_exit(&statusWorkers[workerId]);
+	}
+	
 	if ((statusWorkers[workerId] = pthread_mutex_unlock(&accessCR)) != 0)							/* exit monitor */
 	{
 		errno = statusWorkers[workerId];															/* save error in errno */
