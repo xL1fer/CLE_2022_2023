@@ -1,7 +1,7 @@
 /**
  *  \file consts.h (interface file)
  *
- *  \brief Problem name: Problem name: Sorting Integer Sequence.
+ *  \brief Problem name: Sorting Integer Sequence.
  *
  *  Problem simulation constants.
  *
