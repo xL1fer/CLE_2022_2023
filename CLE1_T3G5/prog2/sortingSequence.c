@@ -33,9 +33,6 @@
 
 #define nWorkers 4
 
-/** \brief return status on monitor initialization */
-int statusInitMon;
-
 /** \brief main thread return status */
 int statusMain;
 
