@@ -240,7 +240,8 @@ static double get_delta_time(void)
 
 static void sortSequence(int* integerSequence, int* subSequenceLen, int* startOffset, int* endOffset)
 {
-	if (*subSequenceLen == MIN_SUBLEN)
+	//if (*subSequenceLen == MIN_SUBLEN)
+	if (*subSequenceLen <= MIN_SUBLEN)
 	{
 		for (int k = 2; k <= *subSequenceLen; k *= 2) // k is doubled every iteration
 		{
