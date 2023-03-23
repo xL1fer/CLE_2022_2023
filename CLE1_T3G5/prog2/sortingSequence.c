@@ -16,7 +16,7 @@
 // 		gcc -Wall -O3 -o sortingSequence sortingSequence.c sharedMemory.c -lpthread -lm
 
 //	run command
-// 		./sortingSequence datSeq32.bin
+// 		./sortingSequence 4 datSeq32.bin
  
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +31,7 @@
 #include "consts.h"
 #include "sharedMemory.h"
 
-#define nWorkers 4
+//#define nWorkers 4
 
 /** \brief main thread return status */
 int statusMain;
@@ -68,14 +68,15 @@ static void sortSequence(int* integerSequence, int* subSequenceLen, int* startOf
 
 int main(int argc, char *argv[])
 {
-	// no file name was provided
-	if (argc < 2)
+	// not enough arguments provided
+	if (argc < 3)
 	{
-		fprintf(stderr, "no file name provided\n");
+		fprintf(stderr, "no thread number or file name provided\n");
 		exit(EXIT_FAILURE);
 	}
 	
-	//int nWorkers = 4;
+	// get number of threads
+	int nWorkers = argv[1][0] - '0';
 	
 	if ((statusWorkers = malloc (nWorkers * sizeof (int))) == NULL)
 	{
@@ -102,7 +103,7 @@ int main(int argc, char *argv[])
 	(void) get_delta_time();
 	
 	/* fill shared memory with file name */
-	fillFileName(argv[1]);
+	fillFileName(argv[2]);
 
 	/* generation of intervening entity threads */
 	if (pthread_create(&tIdDistributor, NULL, distributor, 0) != 0)	/* thread distributor */

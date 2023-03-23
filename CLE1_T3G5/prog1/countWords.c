@@ -16,7 +16,7 @@
 // 		gcc -Wall -O3 -o countWords countWords.c sharedMemory.c -lpthread -lm
 
 //	run command
-// 		./countWords text0.txt text1.txt text2.txt text3.txt text4.txt
+// 		./countWords 4 text0.txt text1.txt text2.txt text3.txt text4.txt
  
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +31,7 @@
 #include "consts.h"
 #include "sharedMemory.h"
 
-#define nThreads 4
+//#define nThreads 4
 
 /** \brief worker threads return status array */
 int *statusWorkers;
@@ -76,8 +76,16 @@ static int vowelOffset(int c);
  */
 
 int main(int argc, char *argv[])
-{
-	//int nThreads = 4;
+{	
+	// not enough arguments provided
+	if (argc < 3)
+	{
+		fprintf(stderr, "no thread number or file name provided\n");
+		exit(EXIT_FAILURE);
+	}
+	
+	// get number of threads
+	int nThreads = argv[1][0] - '0';
 	
 	if ((statusWorkers = malloc (nThreads * sizeof (int))) == NULL)
 	{

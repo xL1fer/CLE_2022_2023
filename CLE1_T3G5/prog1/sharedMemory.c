@@ -80,7 +80,7 @@ void fillSharedMem(char** fileNames)
 	pthread_once(&init, initialization);                                       		/* internal data initialization */
 	
 	/* initialize files names */
-	int filesNumber = -1;	// do not count the first argument ("./countWords")
+	int filesNumber = -2;	// do not count the first argument ("./countWords") neither the number of threads
 	char** ptr = fileNames;
 	while(*ptr != 0)
 	{
@@ -105,7 +105,8 @@ void fillSharedMem(char** fileNames)
 	}
 	
 	ptr = fileNames;
-	for (int i = 1; ptr[i] != 0; i++)
+	int filesOffset = 2;
+	for (int i = filesOffset; ptr[i] != 0; i++)
 	{
 		char* subptr = ptr[i];
 
@@ -113,14 +114,14 @@ void fillSharedMem(char** fileNames)
 		for (nameLen = 0; subptr[nameLen] != 0; nameLen++);
 		
 		/* alocate file name memory */
-		if (((sharedMemory.fileNames[i - 1] = malloc((nameLen + 1) * sizeof(char))) == NULL))
+		if (((sharedMemory.fileNames[i - filesOffset] = malloc((nameLen + 1) * sizeof(char))) == NULL))
 		{
 			fprintf(stderr, "error on allocating space to file name\n");
 			statusMain = EXIT_FAILURE;
 			pthread_exit(&statusMain);
 		}
 		/* alocate result file name memory */
-		if (((sharedMemory.fileResults[i - 1].fileName = malloc((nameLen + 1) * sizeof(char))) == NULL))
+		if (((sharedMemory.fileResults[i - filesOffset].fileName = malloc((nameLen + 1) * sizeof(char))) == NULL))
 		{
 			fprintf(stderr, "error on allocating space to result file name\n");
 			statusMain = EXIT_FAILURE;
@@ -131,13 +132,13 @@ void fillSharedMem(char** fileNames)
 		nameLen++;		// include '\0' termination
 		for (int j = 0; j < nameLen; j++)
 		{
-			sharedMemory.fileNames[i - 1][j] = subptr[j];
-			sharedMemory.fileResults[i - 1].fileName[j] = subptr[j];
+			sharedMemory.fileNames[i - filesOffset][j] = subptr[j];
+			sharedMemory.fileResults[i - filesOffset].fileName[j] = subptr[j];
 		}
 		
-		sharedMemory.fileResults[i - 1].nWords = 0;
+		sharedMemory.fileResults[i - filesOffset].nWords = 0;
 		for (int j = 0; j < 6; j++)
-			sharedMemory.fileResults[i - 1].vowels[j] = 0;
+			sharedMemory.fileResults[i - filesOffset].vowels[j] = 0;
 	}
 	
 	printf("Shared memory filled!\n");
