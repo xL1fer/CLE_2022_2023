@@ -1,0 +1,8 @@
+> First presentation page also white (preferable9
+
+> Table time results reasonable units
+
+> Conclusions are not table times verifications, but what we would expect the program to achieve and what was the actual outcome
+
+
+> Try to better distribute the work to achive more significant performance times
