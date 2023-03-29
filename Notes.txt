@@ -5,4 +5,7 @@
 > Conclusions are not table times verifications, but what we would expect the program to achieve and what was the actual outcome
 
 
+
+> Shared Memory does not need to be a structure if is only going to be instantiated once
+
 > Try to better distribute the work to achive more significant performance times
