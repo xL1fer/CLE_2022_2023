@@ -1,5 +1,5 @@
 /**
- *  \file countWords.h (implementation file)
+ *  \file countWords.c (implementation file)
  *
  *  \brief Problem name: Count Portuguese Words.
  *
