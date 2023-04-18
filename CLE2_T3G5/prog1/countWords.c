@@ -5,8 +5,6 @@
  *
  *  Synchronization based MPI (Message Passing Interface).
  *
- *  Generator thread of the intervening entities.
- *
  *  \author Author Name - Month Year
  */
  
@@ -14,7 +12,7 @@
 // 		mpicc -Wall -O3 -o countWords countWords.c -lm
 
 //	run command
-// 		mpiexec -n 10 ./countWords
+// 		mpiexec -n 10 ./countWords text0.txt text1.txt text2.txt text3.txt text4.txt
  
 #include <mpi.h>
 #include <stdio.h>
@@ -23,15 +21,18 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <math.h>
+#include <string.h>
 
 #include "consts.h"
 
 // general definitions
-# define  WORKTODO       1
-# define  NOMOREWORK     0
+#define WORKTODO       1
+#define NOMOREWORK     0
+
+#define DEBUG
 
 // internal functions declaration
-static void parseCommandLine(int totalFiles, char** fileNames, FileResult* fileResults);
+static int parseCommandLine(char** commandLineArgs, int* totalFiles, char*** fileNames, struct FileResult** fileResults);
 
 /**
  *  \brief Main function.
@@ -45,68 +46,98 @@ static void parseCommandLine(int totalFiles, char** fileNames, FileResult* fileR
  */
 int main(int argc, char *argv[])
 {
-	// not enough arguments provided
-	if (argc < 3)
-	{
-		fprintf(stderr, "no thread number or file name provided\n");
-		MPI_Finalize();
-		return EXIT_SUCCESS;
-	}
-	
 	// MPI initializations
 	int rank, nProc;
-	ChunkData *chunkData = NULL;
-	FileResult *resultData = NULL;
+	struct ChunkData *chunkData = NULL;
+	struct FileResult *resultData = NULL;
 	
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &nProc);
 	
-	if (((chunkData = malloc(sizeof(ChunkData))) == NULL))
+	// not enough arguments provided
+	if (argc < 2)
 	{
-		fprintf(stderr, "error on allocating space to the chunk data\n");
-		statusMain = EXIT_FAILURE;
-		pthread_exit(&statusMain);
+		fprintf(stderr, "no file name provided\n");
+		MPI_Finalize();
+		return EXIT_FAILURE;
 	}
 	
-	if (((resultData = malloc(sizeof(FileResult))) == NULL))
+	if (((chunkData = malloc(sizeof(struct ChunkData))) == NULL))
 	{
-		fprintf(stderr, "error on allocating space to the result data\n");
-		statusMain = EXIT_FAILURE;
-		pthread_exit(&statusMain);
+		fprintf(stderr, "error on allocating space to the chunk data buffer\n");
+		MPI_Finalize();
+		return EXIT_FAILURE;
 	}
 	
-	// root process
+	if (((resultData = malloc(sizeof(struct FileResult))) == NULL))
+	{
+		fprintf(stderr, "error on allocating space to the result data buffer\n");
+		MPI_Finalize();
+		return EXIT_FAILURE;
+	}
+	
+	// dispatcher process
 	if (rank == 0)
 	{
-		struct FileResult* fileResults;
-		char** fileNames;
-		int fileId;
-		int totalFiles;
-		int chunkSize;
+		int totalFiles = 0;
+		char** fileNames = NULL;
+		struct FileResult* fileResults = NULL;
+		int fileId = 0;
+		FILE* currentFile = NULL;
+		//int chunkSize = 0;	// NOT NEEDED, ALREADY IN THE "chunkData" STRUCTURE (DELETE THIS LATER)
 		bool openFile;
-		FILE* currentFile;
+		bool* availWorkers;
 		
-		parseCommandLine(&totalFiles, char** fileNames, FileResult* fileResults);
+		// parse command line arguments and initialize array variables
+		if (parseCommandLine(argv, &totalFiles, &fileNames, &fileResults) == 1)
+		{
+			MPI_Finalize();
+			return EXIT_FAILURE;
+		}
 		
-		bool* workersAvailable;
-		if (((workersAvailable = malloc(nProc * sizeof(bool))) == NULL))
+		// initialize available workers array
+		if (((availWorkers = malloc((nProc - 1) * sizeof(bool))) == NULL))
 		{
 			fprintf(stderr, "error on allocating space to the file names\n");
-			statusMain = EXIT_FAILURE;
-			pthread_exit(&statusMain);
+			MPI_Finalize();
+			return EXIT_FAILURE;
 		}
 		for (int i = 0; i < nProc - 1; i++)
-			workersAvailable[i] = true;
+			availWorkers[i] = true;
+		
+#ifdef DEBUG
+		for (int i = 0; i < totalFiles; i++)
+			printf("> %s\n", fileNames[i]);
+#endif // DEBUG
+
+		// NOTE (L1fer): MOVE THIS TO THE FUNCTION THAT GETS CHUNKS OF DATA
+		// open next file
+		if ((currentFile = fopen(fileNames[fileId++], "r")) == NULL)
+		{
+			fprintf(stderr, "error on opening text file \"%s\"\n", fileNames[fileId - 1]);
+			MPI_Finalize();
+			return EXIT_FAILURE;
+		}
+		
+		MPI_Request reqs[nProc];
 		
 		// while not all files have been parsed
-		while (true)
+		//while (true)
 		{
-
-			for (i = (rank + 1) % size; i < size; i++)
+			for (int i = (rank + 1) % nProc; i < nProc; i++)
+			{
+				if (availWorkers[i])
+				{
+					//getFileChunk(chunkData, currentFile);
+					MPI_Isend(chunkData, sizeof(struct ChunkData), MPI_BYTE, i, 0, MPI_COMM_WORLD, &reqs[i]);
+				}
+			}
+			/*
+			for (int i = (rank + 1) % nProc; i < nProc; i++)
 				MPI_Isend (sndData, strlen (sndData) + 1, MPI_CHAR, i, 0, MPI_COMM_WORLD, &reqSnd[i]);
 			printf ("I, %d, am going to receive a message from all other processes in the group\n", rank);
-			for (i = (rank + 1) % size; i < size; i++)
+			for (i = (rank + 1) % nProc; i < nProc; i++)
 			{
 				MPI_Irecv (recData[i], 100, MPI_CHAR, i, 0, MPI_COMM_WORLD, &reqRec[i]);
 				msgRec[i] = false;
@@ -114,7 +145,7 @@ int main(int argc, char *argv[])
 			do
 			{
 				allMsgRec = true;
-				for (i = (rank + 1) % size; i < size; i++)
+				for (i = (rank + 1) % nProc; i < nProc; i++)
 					if (!msgRec[i])
 					{
 						recVal = false;
@@ -127,25 +158,44 @@ int main(int argc, char *argv[])
 						else allMsgRec = false;
 					}
 			} while (!allMsgRec);
-
+			*/
 		}
 	}
-	// remaining processes
+	// workers processes
 	else
 	{
-		
+		do
+		{
+			MPI_Recv(chunkData, sizeof(struct ChunkData), MPI_BYTE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			printf(">>>>>> %d\n", chunkData->hasWork);
+		} while(chunkData->hasWork == 1);
 	}
 	
+#ifdef DEBUG
+	printf("Process %d finalized\n", rank);
+#endif	// DEBUG
 	
 	MPI_Finalize();
 	return EXIT_SUCCESS;
 }
 
-static void parseCommandLine(int* totalFiles, char** fileNames, FileResult* fileResults)
+/**
+ *  \brief Parse command line arguments.
+ *
+ *  Operation carried out by dispatcher process.
+ *
+ *  \param commandLineArgs command line arguments string array
+ *  \param totalFiles total number of files
+ *  \param fileNames file names array
+ *  \param fileResults file results array
+ *
+ *	\return 0 if no error occured
+ */
+static int parseCommandLine(char** commandLineArgs, int* totalFiles, char*** fileNames, struct FileResult** fileResults)
 {
 	// initialize files names
-	int filesNumber = -2;	// do not count the first argument ("./countWords") neither the number of threads
-	char** ptr = fileNames;
+	int filesNumber = -1;	// do not count the first argument ("./countWords") neither the number of threads
+	char** ptr = commandLineArgs;
 	while(*ptr != 0)
 	{
 		filesNumber++;
@@ -153,23 +203,21 @@ static void parseCommandLine(int* totalFiles, char** fileNames, FileResult* file
 	}
 	*totalFiles = filesNumber;
 	
-	// alocate file names memory
-	if (((fileNames = malloc((filesNumber) * sizeof(char*))) == NULL))
+	// allocate file names memory
+	if (((*fileNames = malloc((filesNumber) * sizeof(char*))) == NULL))
 	{
 		fprintf(stderr, "error on allocating space to the file names\n");
-		statusMain = EXIT_FAILURE;
-		pthread_exit(&statusMain);
+		return 1;
 	}
-	// alocate file results memory
-	if (((fileResults = malloc((filesNumber) * sizeof(*fileResults))) == NULL))
+	// allocate file results memory
+	if (((*fileResults = malloc((filesNumber) * sizeof(struct FileResult))) == NULL))
 	{
 		fprintf(stderr, "error on allocating space to file results\n");
-		statusMain = EXIT_FAILURE;
-		pthread_exit(&statusMain);
+		return 1;
 	}
 	
-	ptr = fileNames;
-	int filesOffset = 2;
+	ptr = commandLineArgs;
+	int filesOffset = 1;
 	for (int i = filesOffset; ptr[i] != 0; i++)
 	{
 		char* subptr = ptr[i];
@@ -177,33 +225,24 @@ static void parseCommandLine(int* totalFiles, char** fileNames, FileResult* file
 		int nameLen;
 		for (nameLen = 0; subptr[nameLen] != 0; nameLen++);
 		
-		// alocate file name memory
-		if (((fileNames[i - filesOffset] = malloc((nameLen + 1) * sizeof(char))) == NULL))
+		// allocate file name memory
+		if ((((*fileNames)[i - filesOffset] = malloc((nameLen + 1) * sizeof(char))) == NULL))
 		{
 			fprintf(stderr, "error on allocating space to file name\n");
-			statusMain = EXIT_FAILURE;
-			pthread_exit(&statusMain);
-		}
-		// alocate result file name memory
-		if (((fileResults[i - filesOffset].fileName = malloc((nameLen + 1) * sizeof(char))) == NULL))
-		{
-			fprintf(stderr, "error on allocating space to result file name\n");
-			statusMain = EXIT_FAILURE;
-			pthread_exit(&statusMain);
+			return 1;
 		}
 		
-		// fill file names and file results
+		// fill file names
 		nameLen++;		// include '\0' termination
 		for (int j = 0; j < nameLen; j++)
-		{
-			fileNames[i - filesOffset][j] = subptr[j];
-			fileResults[i - filesOffset].fileName[j] = subptr[j];
-		}
+			(*fileNames)[i - filesOffset][j] = subptr[j];
 		
-		fileResults[i - filesOffset].nWords = 0;
+		(*fileResults)[i - filesOffset].nWords = 0;
 		for (int j = 0; j < 6; j++)
-			fileResults[i - filesOffset].vowels[j] = 0;
+			(*fileResults)[i - filesOffset].vowels[j] = 0;
 	}
 	
-	printf("Program initialized!\n");
+	printf("Memory initialized!\n");
+	
+	return 0;
 }

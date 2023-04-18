@@ -44,7 +44,6 @@ struct FileResult {
 struct ChunkData {
 	int hasWork;
 	int fileId;
-	int chunkSize;
 	char* chunk;
 };
 
