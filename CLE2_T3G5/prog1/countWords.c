@@ -73,6 +73,13 @@ int main(int argc, char *argv[])
 	MPI_Comm_size(MPI_COMM_WORLD, &nProc);
 	int save = nProc;
 	
+	if (nProc < 2)
+	{
+		fprintf(stderr, "there must be at least 2 processes\n");
+		MPI_Finalize();
+		return EXIT_FAILURE;
+	}
+	
 	// not enough arguments provided
 	if (argc < 2)
 	{
@@ -185,7 +192,7 @@ int main(int argc, char *argv[])
 					if (hasMessage)
 					{
 						struct FileResult* result = &resultsBuffer[i];
-						printf("Receiving result of file %d in box %d\n", result->fileId, i);
+						//printf("Receiving result of file %d in box %d\n", result->fileId, i);
 						
 						// save results
 						fileResults[result->fileId].nWords += result->nWords;
@@ -274,12 +281,12 @@ int main(int argc, char *argv[])
 			
 			//printf("> %d\n", (*resultData).nWords);
 			
-			printf("%d Sending Results!\n", rank);
+			//printf("%d Sending Results!\n", rank);
 			
 			// send results
 			MPI_Send(resultData, sizeof(struct FileResult), MPI_BYTE, 0, 0, MPI_COMM_WORLD);
 			
-			printf("%d Results Delivered!\n", rank);
+			//printf("%d Results Delivered!\n", rank);
 			
 			//printf("%d SENT MESSAGE!\n", rank);
 		}
