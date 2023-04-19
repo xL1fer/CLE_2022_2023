@@ -38,13 +38,15 @@
 struct FileResult {
 	int nWords;
 	int vowels[6];
+	int fileId;
 };
 
 /** \brief chunk data structure */
 struct ChunkData {
 	int hasWork;
 	int fileId;
-	char* chunk;
+	int chunkSize;
+	unsigned char buffer[MAX_CHUNK_SIZE];
 };
 
 #endif /* CONSTS_H_ */
