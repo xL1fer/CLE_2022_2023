@@ -126,13 +126,13 @@ int main(int argc, char *argv[])
 		}
 		
 		// initialize available workers array
-		if (((availWorkers = malloc((nProc - 1) * sizeof(bool))) == NULL))
+		if (((availWorkers = malloc(nProc * sizeof(bool))) == NULL))
 		{
 			fprintf(stderr, "error on allocating space to the file names\n");
 			MPI_Finalize();
 			return EXIT_FAILURE;
 		}
-		for (int i = 0; i < nProc - 1; i++) availWorkers[i] = true;
+		for (int i = 0; i < nProc; i++) availWorkers[i] = true;
 		
 		// allocate memory for results buffer
 		if (((resultsBuffer = malloc(nProc * sizeof(struct FileResult))) == NULL))
@@ -187,7 +187,9 @@ int main(int argc, char *argv[])
 				else
 				{
 					bool hasMessage;
+					printf("> 1 %d\n", nProc);
 					MPI_Test(&reqRec[i], (int *) &hasMessage, MPI_STATUS_IGNORE);
+					printf("> 2 %d\n", nProc);
 					// worker delivered results
 					if (hasMessage)
 					{
