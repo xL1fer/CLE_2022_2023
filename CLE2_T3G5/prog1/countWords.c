@@ -7,13 +7,13 @@
  *
  *  \author Author Name - Month Year
  */
- 
+
 //	compile command
 // 		mpicc -Wall -O3 -o countWords countWords.c -lm
 
 //	run command
-// 		mpiexec -n 10 ./countWords text0.txt text1.txt text2.txt text3.txt text4.txt
- 
+// 		mpiexec -n 5 ./countWords text0.txt text1.txt text2.txt text3.txt text4.txt
+
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
