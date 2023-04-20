@@ -187,9 +187,7 @@ int main(int argc, char *argv[])
 				else
 				{
 					bool hasMessage;
-					printf("> 1 %d\n", nProc);
 					MPI_Test(&reqRec[i], (int *) &hasMessage, MPI_STATUS_IGNORE);
-					printf("> 2 %d\n", nProc);
 					// worker delivered results
 					if (hasMessage)
 					{
