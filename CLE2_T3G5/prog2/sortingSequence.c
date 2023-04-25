@@ -31,6 +31,7 @@
 #define DEBUG
 
 // internal functions declaration
+static double get_delta_time(void);
 static bool readIntegerSequence(int** integerSequence, int* sequenceLen, char* fileName);
 static void sortSequence(int** integerSequence, int* subSequenceLen, int startOffset, int endOffset);
 static void validateArray(int** integerSequence, int* sequenceLen);
@@ -116,9 +117,12 @@ int main(int argc, char *argv[])
 	for (int i = 0; i < 8; i++)
 		gMemb[i] = i;
 	
-	int subSequenceLen = 2;
+	(void) get_delta_time();
+	
+	int subSequenceLen = MIN_SUBLEN;
+	if (subSequenceLen > sequenceLen) subSequenceLen = sequenceLen;
 	while (subSequenceLen <= sequenceLen)
-	{	
+	{
 		// terminate unecessary processes
 		if (subSequenceLen != 2)
 		{
@@ -153,9 +157,10 @@ int main(int argc, char *argv[])
 					printf("%d ", recData[j]);
 				printf("\n");
 			}*/
-			//printf("%d ____DEBUG: %d ; %d\n", rank, offset, offset + subSequenceLen);
 			
 			sortSequence(&recData, &subSequenceLen, offset, offset + subSequenceLen);
+			
+			//printf("%d ____DEBUG: %d ; %d\n", rank, offset, offset + subSequenceLen);
 			
 			MPI_Gather(recData + offset, subSequenceLen, MPI_INT, integerSequence + offset, subSequenceLen, MPI_INT, 0, presentComm);
 			
@@ -164,6 +169,8 @@ int main(int argc, char *argv[])
 		
 		//if (rank == 0) printf("> %d\n", subSequenceLen);
 		subSequenceLen *= 2;
+		
+		if (rank == 0) printf("> %d ; %d\n", subSequenceLen, sequenceLen);
 	}
 	
 	validateArray(&integerSequence, &sequenceLen);
@@ -174,9 +181,30 @@ int main(int argc, char *argv[])
 #ifdef DEBUG
 	printf("Process %d finalized\n", rank);
 #endif	// DEBUG
+
+	// print total time
+	printf("\nElapsed time = %.6f s\n", get_delta_time());
 	
 	MPI_Finalize();
 	return EXIT_SUCCESS;
+}
+
+/**
+ *  \brief Get the process time that has elapsed since last call of this time.
+ *
+ *  \return process elapsed time
+ */
+static double get_delta_time(void)
+{
+	static struct timespec t0, t1;
+
+	t0 = t1;
+	if (clock_gettime(CLOCK_MONOTONIC, &t1) != 0)
+	{
+		perror("clock_gettime");
+		exit(1);
+	}
+	return (double)(t1.tv_sec - t0.tv_sec) + 1.0e-9 * (double)(t1.tv_nsec - t0.tv_nsec);
 }
 
 /**
@@ -273,20 +301,45 @@ static void validateArray(int** integerSequence, int* sequenceLen)
  */
 static void sortSequence(int** integerSequence, int* subSequenceLen, int startOffset, int endOffset)
 {
-	int k = *subSequenceLen;
-	
-	for (int j = k / 2; j > 0; j /= 2) // j is halved at every iteration, with truncation of fractional parts
+	if (*subSequenceLen <= MIN_SUBLEN)
 	{
-		for (int i = startOffset; i < endOffset; i++)
+		for (int k = 2; k <= *subSequenceLen; k *= 2) // k is doubled every iteration
 		{
-			int l = i ^ j;
-			if (l > i)
+			for (int j = k / 2; j > 0; j /= 2) // j is halved at every iteration, with truncation of fractional parts
 			{
-				if ((((i & k) == 0) && ((*integerSequence)[i] > (*integerSequence)[l])) || (((i & k) != 0) && ((*integerSequence)[i] < (*integerSequence)[l])))
+				for (int i = startOffset; i < endOffset; i++)
 				{
-					int temp = (*integerSequence)[i];
-					(*integerSequence)[i] = (*integerSequence)[l];
-					(*integerSequence)[l] = temp;
+					int l = i ^ j;
+					if (l > i)
+					{
+						if ((((i & k) == 0) && ((*integerSequence)[i] > (*integerSequence)[l])) || (((i & k) != 0) && ((*integerSequence)[i] < (*integerSequence)[l])))
+						{
+							int temp = (*integerSequence)[i];
+							(*integerSequence)[i] = (*integerSequence)[l];
+							(*integerSequence)[l] = temp;
+						}
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		int k = *subSequenceLen;
+		
+		for (int j = k / 2; j > 0; j /= 2) // j is halved at every iteration, with truncation of fractional parts
+		{
+			for (int i = startOffset; i < endOffset; i++)
+			{
+				int l = i ^ j;
+				if (l > i)
+				{
+					if ((((i & k) == 0) && ((*integerSequence)[i] > (*integerSequence)[l])) || (((i & k) != 0) && ((*integerSequence)[i] < (*integerSequence)[l])))
+					{
+						int temp = (*integerSequence)[i];
+						(*integerSequence)[i] = (*integerSequence)[l];
+						(*integerSequence)[l] = temp;
+					}
 				}
 			}
 		}
