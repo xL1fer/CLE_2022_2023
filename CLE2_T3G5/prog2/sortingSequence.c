@@ -32,6 +32,8 @@
 
 // internal functions declaration
 static bool readIntegerSequence(int** integerSequence, int* sequenceLen, char* fileName);
+static void sortSequence(int** integerSequence, int* subSequenceLen, int startOffset, int endOffset);
+static void validateArray(int** integerSequence, int* sequenceLen);
 
 /**
  *  \brief Main thread.
@@ -47,17 +49,27 @@ static bool readIntegerSequence(int** integerSequence, int* sequenceLen, char* f
 int main(int argc, char *argv[])
 {
 	// MPI initializations
-	int rank, nProc;
+	MPI_Comm presentComm, nextComm;
+	MPI_Group presentGroup, nextGroup;
+	int gMemb[8];
+	int rank, nProc, nProcNow;//, length, nIter;
+	int *integerSequence = NULL, *recData = NULL;
+	int sequenceLen = 0;
 	
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &nProc);
-	int* integerSequence = NULL;
-	int sequenceLen = 0;
 	
+	// verify number of processes
 	if (nProc < 1)
 	{
 		fprintf(stderr, "there must be at least 1 processes\n");
+		MPI_Finalize();
+		return EXIT_FAILURE;
+	}
+	else if (nProc > 8)
+	{
+		if (rank == 0) fprintf(stderr, "too many processes, it should be a power of 2, less or equal to 8\n");
 		MPI_Finalize();
 		return EXIT_FAILURE;
 	}
@@ -79,26 +91,85 @@ int main(int argc, char *argv[])
 			return EXIT_FAILURE;
 		}
 		
-		/*for (int i = 0; i < 32; i++)
+		//int test[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+		//			17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32 };
+		//int test[] = { 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17,
+		//			16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 };		
+		//int test[] = { 321, 211, 323, 3214, 5313123, 623, 127, 32138, 339, 210, 11, 12312, 131233, 134, 1566, 1612,
+		//			173113212, 18321, 1921, 23210, 233411, 214122, 2123, 24314, 2521, 261, 2317, 238, 293, 30, 31321, 3 };	
+		//integerSequence = test;
+		
+		/*for (int i = 0; i < sequenceLen; i++)
 			printf("%d ", integerSequence[i]);
-		printf("\n");*/
+		printf("\n\n");*/
 	}
 	
 	// send sequence length to all workers
 	MPI_Bcast(&sequenceLen, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	//printf("sequenceLen = %d\n", sequenceLen);
 	
+	recData = malloc(sequenceLen * sizeof(int));
+	
+	//nProcNow = nProc;
+	presentComm = MPI_COMM_WORLD;
+	MPI_Comm_group(presentComm, &presentGroup);
+	for (int i = 0; i < 8; i++)
+		gMemb[i] = i;
+	
 	int subSequenceLen = 2;
 	while (subSequenceLen <= sequenceLen)
-	{
-		//MPI_Scatter(sequence, SUBSEQUENCE_LEN, MPI_INT, subSequence, SUBSEQUENCE_LEN, MPI_INT, 0, MPI_COMM_WORLD);
+	{	
+		// terminate unecessary processes
+		if (subSequenceLen != 2)
+		{
+			//if (rank == 0) printf("> %d (nProcNow = %d)\n", sequenceLen / subSequenceLen, nProcNow);
+			nProcNow = sequenceLen / subSequenceLen;
+			if (nProcNow > nProc)
+				nProcNow = nProc;
+			//printf("> %d \n", nProcNow);
+			MPI_Group_incl(presentGroup, nProcNow, gMemb, &nextGroup);
+			MPI_Comm_create(presentComm, nextGroup, &nextComm);
+			presentGroup = nextGroup;
+			presentComm = nextComm;
+			if (rank >= sequenceLen / subSequenceLen)
+			{
+				//printf("Process %d unecessary\n", rank);
+				free(recData);
+				MPI_Finalize();
+				return EXIT_SUCCESS;
+			}
+		}
+		MPI_Comm_size(presentComm, &nProc);
 		
-		//sortSequence();
+		for (int i = 0; i < sequenceLen; i += nProc * subSequenceLen)
+		{
+			int offset = i + (rank * subSequenceLen);
+			
+			MPI_Scatter(integerSequence + offset, subSequenceLen, MPI_INT, recData + offset, subSequenceLen, MPI_INT, 0, presentComm);
+			
+			/*if (rank == 0)
+			{
+				for (int j = offset; j < offset + subSequenceLen; j++)
+					printf("%d ", recData[j]);
+				printf("\n");
+			}*/
+			//printf("%d ____DEBUG: %d ; %d\n", rank, offset, offset + subSequenceLen);
+			
+			sortSequence(&recData, &subSequenceLen, offset, offset + subSequenceLen);
+			
+			MPI_Gather(recData + offset, subSequenceLen, MPI_INT, integerSequence + offset, subSequenceLen, MPI_INT, 0, presentComm);
+			
+			//printf("> %d HERE (subSequenceLen = %d)\n", rank, subSequenceLen);
+		}
 		
-		//MPI_Gather (sendResults, 2, MPI_INT, recvResults, 2, MPI_INT, 0, MPI_COMM_WORLD);
-		
+		//if (rank == 0) printf("> %d\n", subSequenceLen);
 		subSequenceLen *= 2;
 	}
+	
+	validateArray(&integerSequence, &sequenceLen);
+	/*for (int i = 0; i < sequenceLen; i++)
+		printf("%d ", integerSequence[i]);
+	printf("\n\n");*/
 	
 #ifdef DEBUG
 	printf("Process %d finalized\n", rank);
@@ -170,4 +241,54 @@ static bool readIntegerSequence(int** integerSequence, int* sequenceLen, char* f
 	}
 	
 	return true;
+}
+
+/**
+ *  \brief Verify if the integer sequence is sorted.
+ *
+ *  Operation carried out by distributor
+ */
+static void validateArray(int** integerSequence, int* sequenceLen)
+{
+    for (int i = 0; i < *sequenceLen - 1; i++)
+    {
+        if ((*integerSequence)[i] > (*integerSequence)[i + 1])
+        {
+            printf("Error in position %d between element %d and %d\n", i, (*integerSequence)[i], (*integerSequence)[i + 1]);
+            return;
+        }
+    }
+    printf("Everything is OK!\n");
+}
+
+/**
+ *  \brief Bitonic sort a sequence of integers.
+ *
+ *	Operation carried out by worker.
+ *
+ *	Addapted from https://en.wikipedia.org/wiki/Bitonic_sorter
+ *
+ *  \param integerSequence sequence to be sorted
+ *  \param subSequenceLen length of the sequence
+ */
+static void sortSequence(int** integerSequence, int* subSequenceLen, int startOffset, int endOffset)
+{
+	int k = *subSequenceLen;
+	
+	for (int j = k / 2; j > 0; j /= 2) // j is halved at every iteration, with truncation of fractional parts
+	{
+		for (int i = startOffset; i < endOffset; i++)
+		{
+			int l = i ^ j;
+			if (l > i)
+			{
+				if ((((i & k) == 0) && ((*integerSequence)[i] > (*integerSequence)[l])) || (((i & k) != 0) && ((*integerSequence)[i] < (*integerSequence)[l])))
+				{
+					int temp = (*integerSequence)[i];
+					(*integerSequence)[i] = (*integerSequence)[l];
+					(*integerSequence)[l] = temp;
+				}
+			}
+		}
+	}
 }
