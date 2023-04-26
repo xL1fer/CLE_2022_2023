@@ -41,5 +41,5 @@ for i in `seq 5`; do array[$i]=$(mpiexec -n 2 ./sortingSequence datSeq16M.bin); 
 ./parseTimes ${array[1]} ${array[2]} ${array[3]} ${array[4]} ${array[5]}
 for i in `seq 5`; do array[$i]=$(mpiexec -n 4 ./sortingSequence datSeq16M.bin); done;
 ./parseTimes ${array[1]} ${array[2]} ${array[3]} ${array[4]} ${array[5]}
-for i in `seq 5`; do array[$i]=$(mpiexec -n 8 ./sortingSequence datSeq16M.bin); done;
-./parseTimes ${array[1]} ${array[2]} ${array[3]} ${array[4]} ${array[5]}
+#for i in `seq 5`; do array[$i]=$(mpiexec -n 8 ./sortingSequence datSeq16M.bin); done;
+#./parseTimes ${array[1]} ${array[2]} ${array[3]} ${array[4]} ${array[5]}
