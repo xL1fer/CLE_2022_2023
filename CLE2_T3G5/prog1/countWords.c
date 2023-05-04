@@ -201,37 +201,9 @@ int main(int argc, char *argv[])
 						
 						availWorkers[i] = true;
 					}
-					nProc = save;	// NOTE(L1fer): WHY THE FUCK IS "nProc" BEING RESETED ?????????????????????
+					nProc = save;
 				}
 			}
-			
-			/*
-			// open receiving buffer for each worker that does not have it opened yet
-			for (int i = rank + 1; i < nProc; i++)
-			{
-				if (availWorkers[i])
-				{
-					MPI_Irecv(&resultsBuffer[i], sizeof(struct FileResult), MPI_BYTE, i, 0, MPI_COMM_WORLD, &reqRec[i]);
-					availWorkers[i] = false;
-				}
-			}
-			
-			// test if there are any message from workers
-			for (int i = rank + 1; i < nProc; i++)
-			{
-				if (!availWorkers[i])
-				{
-					bool hasMessage;
-					MPI_Test(&reqRec[i], (int *) &hasMessage, MPI_STATUS_IGNORE);
-					if (hasMessage)
-					{
-						//printf ("Received a result!");
-						availWorkers[i] = true;
-					}
-				}
-				nProc = save;	// NOTE(L1fer): WHY THE FUCK IS "nProc" BEING RESETED ?????????????????????
-			}
-			*/
 		}
 		
 		// get remaining results and send message for workers to terminate
@@ -272,23 +244,11 @@ int main(int argc, char *argv[])
 			if (chunkData->hasWork == NOMOREWORK)
 				break;
 			
-			//printf("< %d\n", chunkData->fileId);
-			//printf("%s\n========================================= (%d)\n", chunkData->buffer, rank);
-			//printf("DEBUG: %d\n", chunkData->hasWork);
-			
 			*resultData = processChunk(chunkData->buffer, chunkData->chunkSize);
 			resultData->fileId = chunkData->fileId;
 			
-			//printf("> %d\n", (*resultData).nWords);
-			
-			//printf("%d Sending Results!\n", rank);
-			
 			// send results
 			MPI_Send(resultData, sizeof(struct FileResult), MPI_BYTE, 0, 0, MPI_COMM_WORLD);
-			
-			//printf("%d Results Delivered!\n", rank);
-			
-			//printf("%d SENT MESSAGE!\n", rank);
 		}
 	}
 	
