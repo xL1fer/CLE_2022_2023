@@ -91,27 +91,13 @@ int main(int argc, char *argv[])
 			MPI_Finalize();
 			return EXIT_FAILURE;
 		}
-		
-		//int test[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-		//			17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32 };
-		//int test[] = { 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17,
-		//			16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 };		
-		//int test[] = { 321, 211, 323, 3214, 5313123, 623, 127, 32138, 339, 210, 11, 12312, 131233, 134, 1566, 1612,
-		//			173113212, 18321, 1921, 23210, 233411, 214122, 2123, 24314, 2521, 261, 2317, 238, 293, 30, 31321, 3 };	
-		//integerSequence = test;
-		
-		/*for (int i = 0; i < sequenceLen; i++)
-			printf("%d ", integerSequence[i]);
-		printf("\n\n");*/
 	}
 	
 	// send sequence length to all workers
 	MPI_Bcast(&sequenceLen, 1, MPI_INT, 0, MPI_COMM_WORLD);
-	//printf("sequenceLen = %d\n", sequenceLen);
 	
 	recData = malloc(sequenceLen * sizeof(int));
 	
-	//nProcNow = nProc;
 	presentComm = MPI_COMM_WORLD;
 	MPI_Comm_group(presentComm, &presentGroup);
 	for (int i = 0; i < 8; i++)
@@ -126,18 +112,16 @@ int main(int argc, char *argv[])
 		// terminate unecessary processes
 		if (subSequenceLen != 2)
 		{
-			//if (rank == 0) printf("> %d (nProcNow = %d)\n", sequenceLen / subSequenceLen, nProcNow);
 			nProcNow = sequenceLen / subSequenceLen;
 			if (nProcNow > nProc)
 				nProcNow = nProc;
-			//printf("> %d \n", nProcNow);
+			
 			MPI_Group_incl(presentGroup, nProcNow, gMemb, &nextGroup);
 			MPI_Comm_create(presentComm, nextGroup, &nextComm);
 			presentGroup = nextGroup;
 			presentComm = nextComm;
 			if (rank >= sequenceLen / subSequenceLen)
 			{
-				//printf("Process %d unecessary\n", rank);
 				free(recData);
 				MPI_Finalize();
 				return EXIT_SUCCESS;
@@ -151,32 +135,17 @@ int main(int argc, char *argv[])
 			
 			MPI_Scatter(integerSequence + offset, subSequenceLen, MPI_INT, recData + offset, subSequenceLen, MPI_INT, 0, presentComm);
 			
-			/*if (rank == 0)
-			{
-				for (int j = offset; j < offset + subSequenceLen; j++)
-					printf("%d ", recData[j]);
-				printf("\n");
-			}*/
-			
 			sortSequence(&recData, &subSequenceLen, offset, offset + subSequenceLen);
 			
-			//printf("%d ____DEBUG: %d ; %d\n", rank, offset, offset + subSequenceLen);
-			
 			MPI_Gather(recData + offset, subSequenceLen, MPI_INT, integerSequence + offset, subSequenceLen, MPI_INT, 0, presentComm);
-			
-			//printf("> %d HERE (subSequenceLen = %d)\n", rank, subSequenceLen);
 		}
 		
-		//if (rank == 0) printf("> %d\n", subSequenceLen);
 		subSequenceLen *= 2;
 		
 		if (rank == 0) printf("> %d ; %d\n", subSequenceLen, sequenceLen);
 	}
 	
 	validateArray(&integerSequence, &sequenceLen);
-	/*for (int i = 0; i < sequenceLen; i++)
-		printf("%d ", integerSequence[i]);
-	printf("\n\n");*/
 	
 #ifdef DEBUG
 	printf("Process %d finalized\n", rank);
@@ -234,13 +203,6 @@ static bool readIntegerSequence(int** integerSequence, int* sequenceLen, char* f
 		fprintf(stderr, "error on reading integer sequence length\n");
 		return false;
 	}
-    //printf("> Sequence length: %d\n", sequenceLen);
-	
-	//maxRequests = sequenceLen / MIN_SUBLEN;
-	/*if (sequenceLen < MIN_SUBLEN)
-		maxRequests = sequenceLen / 32;
-	else
-		maxRequests = sequenceLen / MIN_SUBLEN;*/
 	
 	// alocate integer sequence memory
 	if ((*integerSequence = malloc((*sequenceLen) * sizeof(int))) == NULL)
