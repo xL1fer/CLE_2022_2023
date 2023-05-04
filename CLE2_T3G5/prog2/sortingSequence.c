@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
 		
 		subSequenceLen *= 2;
 		
-		if (rank == 0) printf("> %d ; %d\n", subSequenceLen, sequenceLen);
+		//if (rank == 0) printf("> %d ; %d\n", subSequenceLen, sequenceLen);
 	}
 	
 	validateArray(&integerSequence, &sequenceLen);
