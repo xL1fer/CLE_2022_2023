@@ -4,6 +4,8 @@
 
 > Conclusions are not table times verifications, but what we would expect the program to achieve and what was the actual outcome
 
+> Mean with +- standard deviation (decimal places related to standard deviation value)
+
 
 
 > Shared Memory does not need to be a structure if is only going to be instantiated once
