@@ -1,5 +1,5 @@
 /**
- *   Tomás Oliveira e Silva, November 2017
+ *   Author Name, May 2023
  */
 
 #include <time.h>
@@ -14,14 +14,7 @@
  *   program configuration
  */
 
-#ifndef SECTOR_SIZE
-	#define SECTOR_SIZE 512
-#endif
-#ifndef N_SECTORS
-	#define N_SECTORS (1 << 21) // it can go as high as (1 << 21)
-#endif
-
-#ifndef N 1024
+#ifndef N
 	#define N 1024
 #endif
 
@@ -31,7 +24,7 @@ static bool readIntegerSequence(int** integerSequence, int* sequenceLen, char* f
 
 static void validateArray(int** integerSequence, int* sequenceLen);
 
-__global__ static void sort_sequence_cuda_kernel(int * __restrict__ integerSequence, int subSequenceLen, int startOffset, int endOffset);
+__global__ static void sort_sequence_cuda_kernel(int * __restrict__ integerSequence, int iter, int subSequenceLen);
 
 static double get_delta_time(void);
 
@@ -70,9 +63,11 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	
-	// create memory areas in device memory
+	//printf("Integer sequence length: %d\n", sequenceLen);
 	
-	int *deviceIntegerSequence;
+	// create memory area in device memory
+	
+	int *deviceIntegerSequence = NULL;
 
 	if (sequenceLen > (size_t)5e9)
 	{
@@ -80,58 +75,72 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	CHECK(cudaMalloc((void **)&deviceIntegerSequence, sequenceLen));
+	CHECK(cudaMalloc((void **)&deviceIntegerSequence, sequenceLen * sizeof(int)));
 
     // copy the host data to the device memory
 
-    CHECK(cudaMemcpy(deviceIntegerSequence, integerSequence, sequenceLen, cudaMemcpyHostToDevice));
+    CHECK(cudaMemcpy(deviceIntegerSequence, integerSequence, sequenceLen * sizeof(int), cudaMemcpyHostToDevice));
 
     // run the computational kernel
+	
+	unsigned int gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ;
+	
+	blockDimX = 1 << 0; // optimize!
+	blockDimY = 1 << 0; // optimize!
+	blockDimZ = 1 << 0; // do not change!
+	gridDimX = 1 << 0; 	// optimize!
+	gridDimY = 1 << 0;  // optimize!
+	gridDimZ = 1 << 0;  // do not change!
 
 	(void)get_delta_time();
-
-	for (int iter = 0; iter < 9; iter++)
+	
+	for (int iter = 0; iter <= 10; iter++)
 	{
-		unsigned int gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ;
-		
-		blockDimX = 1 << 0; // optimize!
-		blockDimY = 1 << 0; // optimize!
-		blockDimZ = 1 << 0; // do not change!
-		gridDimX = 1 << 21; // optimize!
-		gridDimY = 1 << 0;  // optimize!
-		gridDimZ = 1 << 0;  // do not change!
-		
 		switch (iter)
 		{
 			case 0:
-			
+				blockDimX = 1 << 0; // optimize!
+				gridDimX = 1 << 10;	// optimize!
 				break;
 			case 1:
-				
+				blockDimX = 1 << 0; // optimize!
+				gridDimX = 1 << 9; 	// optimize!
 				break;
 			case 2:
-				
+				blockDimX = 1 << 0; // optimize!
+				gridDimX = 1 << 8; 	// optimize!
 				break;
 			case 3:
-				
+				blockDimX = 1 << 0; // optimize!
+				gridDimX = 1 << 7; 	// optimize!
 				break;
 			case 4:
-				
+				blockDimX = 1 << 0; // optimize!
+				gridDimX = 1 << 6; 	// optimize!
 				break;
 			case 5:
-				
+				blockDimX = 1 << 0; // optimize!
+				gridDimX = 1 << 5; 	// optimize!
 				break;
 			case 6:
-				
+				blockDimX = 1 << 0; // optimize!
+				gridDimX = 1 << 4; 	// optimize!
 				break;
 			case 7:
-				
+				blockDimX = 1 << 0; // optimize!
+				gridDimX = 1 << 3; 	// optimize!
 				break;
 			case 8:
-				
+				blockDimX = 1 << 0; // optimize!
+				gridDimX = 1 << 2; 	// optimize!
 				break;
 			case 9:
-				
+				blockDimX = 1 << 0; // optimize!
+				gridDimX = 1 << 1; 	// optimize!
+				break;
+			case 10:
+				blockDimX = 1 << 0; // optimize!
+				gridDimX = 1 << 0; 	// optimize!
 				break;
 			default:
 				break;
@@ -140,17 +149,18 @@ int main(int argc, char **argv)
 		dim3 grid(gridDimX, gridDimY, gridDimZ);
 		dim3 block(blockDimX, blockDimY, blockDimZ);
 		
-		sort_sequence_cuda_kernel<<<grid, block>>>();	// sort sequence
+		sort_sequence_cuda_kernel<<<grid, block>>>(deviceIntegerSequence, iter, (1 << iter) * N);	// sort sequence
 		CHECK(cudaDeviceSynchronize()); 				// wait for kernel to finish
 		CHECK(cudaGetLastError());      				// check for kernel errors
+		
+		printf("Iteration = %d\n", iter);
 	}
 	
-	printf("The CUDA kernel <<<(%d,%d,%d), (%d,%d,%d)>>> took %.3e seconds to run\n",
-							   gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, get_delta_time());
+	printf("\nElapsed time = %.6f s\n", get_delta_time());
 
     // copy kernel result back to host side
 
-    CHECK(cudaMemcpy(integerSequence, deviceIntegerSequence, sequenceLen, cudaMemcpyDeviceToHost));
+    CHECK(cudaMemcpy(integerSequence, deviceIntegerSequence, sequenceLen * sizeof(int), cudaMemcpyDeviceToHost));
 
     // free device global memory
 
@@ -189,7 +199,7 @@ static bool readIntegerSequence(int** integerSequence, int* sequenceLen, char* f
 	}
 	
 	// alocate integer sequence memory
-	if ((*integerSequence = malloc((*sequenceLen) * sizeof(int))) == NULL)
+	if ((*integerSequence = (int *)malloc((*sequenceLen) * sizeof(int))) == NULL)
 	{
 		fprintf(stderr, "error on allocating space to file name\n");
 		return false;
@@ -230,7 +240,7 @@ static void validateArray(int** integerSequence, int* sequenceLen)
     printf("Everything is OK!\n");
 }
 
-__global__ static void sort_sequence_cuda_kernel(int * __restrict__ integerSequence, int subSequenceLen, int startOffset, int endOffset)
+__global__ static void sort_sequence_cuda_kernel(int * __restrict__ integerSequence, int iter, int subSequenceLen)
 {
     unsigned int x, y, idx;
 
@@ -239,30 +249,55 @@ __global__ static void sort_sequence_cuda_kernel(int * __restrict__ integerSeque
     x = (unsigned int)threadIdx.x + (unsigned int)blockDim.x * (unsigned int)blockIdx.x;
     y = (unsigned int)threadIdx.y + (unsigned int)blockDim.y * (unsigned int)blockIdx.y;
     idx = (unsigned int)blockDim.x * (unsigned int)gridDim.x * y + x;
-
-    // sort sequence
 	
-	for (int k = 2; k <= *subSequenceLen; k *= 2) // k is doubled every iteration
+	//printf("THREAD IDX: %d\n", idx);
+	
+	// sort sequence
+	if (subSequenceLen == N)
 	{
+		for (int k = 2; k <= subSequenceLen; k *= 2) // k is doubled every iteration
+		{
+			for (int j = k / 2; j > 0; j /= 2) // j is halved at every iteration, with truncation of fractional parts
+			{
+				for (int i = 0; i < (1 << iter) * N; i++)
+				{
+					int m = N * (1 << iter) * idx + i;
+					int l = m ^ j;
+					if (l > m)
+					{
+						if ((((m & k) == 0) && (integerSequence[m] > integerSequence[l])) || (((m & k) != 0) && (integerSequence[m] < integerSequence[l])))
+						{
+							int temp = integerSequence[m];
+							integerSequence[m] = integerSequence[l];
+							integerSequence[l] = temp;
+						}
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		int k = subSequenceLen;
+		
 		for (int j = k / 2; j > 0; j /= 2) // j is halved at every iteration, with truncation of fractional parts
 		{
-			for (int i = startOffset; i < endOffset; i++)
+			for (int i = 0; i < (1 << iter) * N; i++)
 			{
-				int l = i ^ j;
-				if (l > i)
+				int m = N * (1 << iter) * idx + i;
+				int l = m ^ j;
+				if (l > m)
 				{
-					if ((((i & k) == 0) && (integerSequence[i] > integerSequence[l])) || (((i & k) != 0) && (integerSequence[i] < integerSequence[l])))
+					if ((((m & k) == 0) && (integerSequence[m] > integerSequence[l])) || (((m & k) != 0) && (integerSequence[m] < integerSequence[l])))
 					{
-						int temp = integerSequence[i];
-						integerSequence[i] = integerSequence[l];
+						int temp = integerSequence[m];
+						integerSequence[m] = integerSequence[l];
 						integerSequence[l] = temp;
 					}
 				}
 			}
 		}
 	}
-	
-	
 }
 
 static double get_delta_time(void)
