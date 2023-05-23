@@ -229,15 +229,38 @@ static bool readIntegerSequence(int** integerSequence, int* sequenceLen, char* f
 
 static void validateArray(int** integerSequence, int* sequenceLen)
 {
-    for (int i = 0; i < *sequenceLen - 1; i++)
-    {
-        if ((*integerSequence)[i] > (*integerSequence)[i + 1])
-        {
-            printf("Error in position %d between element %d and %d\n", i, (*integerSequence)[i], (*integerSequence)[i + 1]);
-            return;
-        }
-    }
-    printf("Everything is OK!\n");
+	/*
+	for (int i = 0; i < N - 1; i++)
+	{
+		int j = N * (i % N) + (i / N);
+		int k = N * (((i + 1) % N) + (i + 1) / N);
+		printf("Comparing %d with %d\n", j, k);
+		if ((*integerSequence)[j] > (*integerSequence)[k])
+		{
+			printf("Error in position %d between element %d and %d\n", i, (*integerSequence)[j], (*integerSequence)[k]);
+			return;
+		}
+	}
+	printf("Everything is OK!\n");
+	*/
+	
+	for (int i = 0; i < N; i++)
+	{
+		for (int j = 0; j < N - 1; j++)
+		{
+			int k = i + j * N;
+			int l = i + (j + 1) * N;
+			if (j == N - 1) l = i + 1;
+			//printf("Comparing %d with %d\n", k, l);
+			if ((*integerSequence)[k] > (*integerSequence)[l])
+			{
+				printf("Error in position %d between element %d and %d\n", i, (*integerSequence)[k], (*integerSequence)[l]);
+				return;
+			}
+		}
+		break;
+	}
+	printf("Everything is OK!\n");
 }
 
 __global__ static void sort_sequence_cuda_kernel(int * __restrict__ integerSequence, int iter, int subSequenceLen)
