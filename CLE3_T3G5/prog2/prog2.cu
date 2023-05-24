@@ -96,6 +96,8 @@ int main(int argc, char **argv)
 	
 	for (int iter = 0; iter <= 10; iter++)
 	{
+		printf("Iteration = %d\n", iter);
+		
 		switch (iter)
 		{
 			case 0:
@@ -152,8 +154,6 @@ int main(int argc, char **argv)
 		sort_sequence_cuda_kernel<<<grid, block>>>(deviceIntegerSequence, iter, (1 << iter) * N);	// sort sequence
 		CHECK(cudaDeviceSynchronize()); 				// wait for kernel to finish
 		CHECK(cudaGetLastError());      				// check for kernel errors
-		
-		printf("Iteration = %d\n", iter);
 	}
 	
 	printf("\nElapsed time = %.6f s\n", get_delta_time());

@@ -1,0 +1,1 @@
+sshpass -f password ssh cle35@banana.ua.pt
