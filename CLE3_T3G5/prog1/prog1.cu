@@ -1,5 +1,11 @@
 /**
- *   Author Name, May 2023
+ *  \file prog1.c (implementation file)
+ *
+ *  \brief Problem name: Sorting Integer Sequence.
+ *
+ *  Synchronization based on CUDA C (NVIDIA GPU API).
+ *	
+ *  \author Author Name - Month Year
  */
 
 #include <time.h>
@@ -10,9 +16,7 @@
 #include "common.h"
 #include <cuda_runtime.h>
 
-/**
- *   program configuration
- */
+// program configuration
 
 #ifndef N
 	#define N 1024
@@ -29,7 +33,15 @@ __global__ static void sort_sequence_cuda_kernel(int * __restrict__ integerSeque
 static double get_delta_time(void);
 
 /**
- *   main program
+ *  \brief Main program.
+ *
+ *  The CPU starts the simulation by parsing the integer sequence file and allocating the GPU device memory
+ *  and ends up by assigning subsequences to be sorted (line wise) by the GPU with a given grid and block distribution
+ *
+ *  \param argc number of words of the command line
+ *  \param argv list of words of the command line
+ *
+ *  \return status of operation
  */
 int main(int argc, char **argv)
 {
@@ -181,6 +193,17 @@ int main(int argc, char **argv)
     return 0;
 }
 
+/**
+ *  \brief Read binary file integer sequence.
+ *
+ *  Operation carried out by the CPU
+ *
+ *  \param integerSequence integer sequence array
+ *  \param sequenceLen integer sequence length
+ *  \param fileName integer sequence file name
+ *
+ *	\return true everything went well
+ */
 static bool readIntegerSequence(int** integerSequence, int* sequenceLen, char* fileName)
 {
 	FILE* filePointer = NULL;
@@ -227,6 +250,11 @@ static bool readIntegerSequence(int** integerSequence, int* sequenceLen, char* f
 	return true;
 }
 
+/**
+ *  \brief Verify if the integer sequence is sorted.
+ *
+ *  Operation carried out by the CPU
+ */
 static void validateArray(int** integerSequence, int* sequenceLen)
 {
     for (int i = 0; i < *sequenceLen - 1; i++)
@@ -240,6 +268,17 @@ static void validateArray(int** integerSequence, int* sequenceLen)
     printf("Everything is OK!\n");
 }
 
+/**
+ *  \brief Bitonic sort a sequence of integers.
+ *
+ *	Operation carried out by the GPU device.
+ *
+ *	Addapted from https://en.wikipedia.org/wiki/Bitonic_sorter
+ *
+ *  \param integerSequence sequence to be sorted
+ *	\param iter current iteration
+ *  \param subSequenceLen length of the sequence
+ */
 __global__ static void sort_sequence_cuda_kernel(int * __restrict__ integerSequence, int iter, int subSequenceLen)
 {
     unsigned int x, y, idx;
@@ -300,6 +339,11 @@ __global__ static void sort_sequence_cuda_kernel(int * __restrict__ integerSeque
 	}
 }
 
+/**
+ *  \brief Get the process time that has elapsed since last call of this time.
+ *
+ *  \return process elapsed time
+ */
 static double get_delta_time(void)
 {
     static struct timespec t0, t1;
