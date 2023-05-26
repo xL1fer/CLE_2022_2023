@@ -274,7 +274,7 @@ static void validateArray(int** integerSequence, int* sequenceLen)
 	
 	for (int i = 0; i < N; i++)
 	{
-		for (int j = 0; j < N - 1; j++)
+		for (int j = 0; j < N; j++)
 		{
 			int k = i + j * N;
 			int l = i + (j + 1) * N;
