@@ -256,37 +256,22 @@ static bool readIntegerSequence(int** integerSequence, int* sequenceLen, char* f
  *  Operation carried out by the CPU
  */
 static void validateArray(int** integerSequence, int* sequenceLen)
-{
-	/*
-	for (int i = 0; i < N - 1; i++)
-	{
-		int j = N * (i % N) + (i / N);
-		int k = N * (((i + 1) % N) + (i + 1) / N);
-		printf("Comparing %d with %d\n", j, k);
-		if ((*integerSequence)[j] > (*integerSequence)[k])
-		{
-			printf("Error in position %d between element %d and %d\n", i, (*integerSequence)[j], (*integerSequence)[k]);
-			return;
-		}
-	}
-	printf("Everything is OK!\n");
-	*/
-	
+{	
 	for (int i = 0; i < N; i++)
 	{
 		for (int j = 0; j < N; j++)
 		{
 			int k = i + j * N;
 			int l = i + (j + 1) * N;
-			if (j == N - 1) l = i + 1;
-			//printf("Comparing %d with %d\n", k, l);
+			if (i == N - 1 && j == N - 1) break;
+			else if (j == N - 1) l = i + 1;
+			//printf("Comparing %d (%d) with %d (%d)\n", k, (*integerSequence)[k], l, (*integerSequence)[l]);
 			if ((*integerSequence)[k] > (*integerSequence)[l])
 			{
-				printf("Error in position %d between element %d and %d\n", i, (*integerSequence)[k], (*integerSequence)[l]);
+				printf("Error in position %d between element %d and %d\n", k, (*integerSequence)[k], (*integerSequence)[l]);
 				return;
 			}
 		}
-		break;
 	}
 	printf("Everything is OK!\n");
 }
@@ -323,15 +308,17 @@ __global__ static void sort_sequence_cuda_kernel(int * __restrict__ integerSeque
 			{
 				for (int i = 0; i < (1 << iter) * N; i++)
 				{
-					int m = (1 << iter) * idx + N * (i % N) + (i / N);
+					int m = N * (1 << iter) * idx + i;
+					int n = (1 << iter) * idx + N * (i % N) + (i / N);
 					int l = m ^ j;
+					int o = N * (l % N) + (l / N);
 					if (l > m)
 					{
-						if ((((m & k) == 0) && (integerSequence[m] > integerSequence[l])) || (((m & k) != 0) && (integerSequence[m] < integerSequence[l])))
+						if ((((m & k) == 0) && (integerSequence[n] > integerSequence[o])) || (((m & k) != 0) && (integerSequence[n] < integerSequence[o])))
 						{
-							int temp = integerSequence[m];
-							integerSequence[m] = integerSequence[l];
-							integerSequence[l] = temp;
+							int temp = integerSequence[n];
+							integerSequence[n] = integerSequence[o];
+							integerSequence[o] = temp;
 						}
 					}
 				}
@@ -346,15 +333,17 @@ __global__ static void sort_sequence_cuda_kernel(int * __restrict__ integerSeque
 		{
 			for (int i = 0; i < (1 << iter) * N; i++)
 			{
-				int m = (1 << iter) * idx + N * (i % N) + (i / N);
+				int m = N * (1 << iter) * idx + i;
+				int n = (1 << iter) * idx + N * (i % N) + (i / N);
 				int l = m ^ j;
+				int o = N * (l % N) + (l / N);
 				if (l > m)
 				{
-					if ((((m & k) == 0) && (integerSequence[m] > integerSequence[l])) || (((m & k) != 0) && (integerSequence[m] < integerSequence[l])))
+					if ((((m & k) == 0) && (integerSequence[n] > integerSequence[o])) || (((m & k) != 0) && (integerSequence[n] < integerSequence[o])))
 					{
-						int temp = integerSequence[m];
-						integerSequence[m] = integerSequence[l];
-						integerSequence[l] = temp;
+						int temp = integerSequence[n];
+						integerSequence[n] = integerSequence[o];
+						integerSequence[o] = temp;
 					}
 				}
 			}
