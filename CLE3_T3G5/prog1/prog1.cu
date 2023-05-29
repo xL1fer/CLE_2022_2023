@@ -106,55 +106,77 @@ int main(int argc, char **argv)
 
 	(void)get_delta_time();
 	
-	for (int iter = 0; iter <= 10; iter++)
+	for (int iter = 0; iter <= 6; iter++)
 	{
 		printf("Iteration = %d\n", iter);
 		
 		switch (iter)
 		{
 			case 0:
-				blockDimX = 1 << 0; // optimize!
-				gridDimX = 1 << 10;	// optimize!
+				blockDimX = 1 << 0;
+				blockDimY = 1 << 2;
+				gridDimX = 1 << 2;
+				gridDimY = 1 << 6;
 				break;
 			case 1:
-				blockDimX = 1 << 0; // optimize!
-				gridDimX = 1 << 9; 	// optimize!
+				blockDimX = 1 << 0;
+				blockDimY = 1 << 1;
+				gridDimX = 1 << 1;
+				gridDimY = 1 << 7;
 				break;
 			case 2:
-				blockDimX = 1 << 0; // optimize!
-				gridDimX = 1 << 8; 	// optimize!
+				blockDimX = 1 << 0;
+				blockDimY = 1 << 1;
+				gridDimX = 1 << 5;
+				gridDimY = 1 << 2;
 				break;
 			case 3:
-				blockDimX = 1 << 0; // optimize!
-				gridDimX = 1 << 7; 	// optimize!
+				blockDimX = 1 << 0;
+				blockDimY = 1 << 1;
+				gridDimX = 1 << 1;
+				gridDimY = 1 << 5;
 				break;
 			case 4:
-				blockDimX = 1 << 0; // optimize!
-				gridDimX = 1 << 6; 	// optimize!
+				blockDimX = 1 << 0;
+				blockDimY = 1 << 0;
+				gridDimX = 1 << 6;
+				gridDimY = 1 << 0;
 				break;
 			case 5:
-				blockDimX = 1 << 0; // optimize!
-				gridDimX = 1 << 5; 	// optimize!
+				blockDimX = 1 << 0;
+				blockDimY = 1 << 0;
+				gridDimX = 1 << 0;
+				gridDimY = 1 << 5;
 				break;
-			case 6:
-				blockDimX = 1 << 0; // optimize!
-				gridDimX = 1 << 4; 	// optimize!
+			case 6:	// HERE
+				blockDimX = 1 << 0;
+				blockDimY = 1 << 0;
+				gridDimX = 1 << 4;
+				gridDimY = 1 << 0;
 				break;
 			case 7:
-				blockDimX = 1 << 0; // optimize!
-				gridDimX = 1 << 3; 	// optimize!
+				blockDimX = 1 << 0;
+				blockDimY = 1 << 0;
+				gridDimX = 1 << 3;
+				gridDimY = 1 << 0;
 				break;
 			case 8:
-				blockDimX = 1 << 0; // optimize!
-				gridDimX = 1 << 2; 	// optimize!
+				blockDimX = 1 << 0;
+				blockDimY = 1 << 0;
+				gridDimX = 1 << 2;
+				gridDimY = 1 << 0;
 				break;
 			case 9:
-				blockDimX = 1 << 0; // optimize!
-				gridDimX = 1 << 1; 	// optimize!
+				blockDimX = 1 << 0;
+				blockDimY = 1 << 0;
+				gridDimX = 1 << 1;
+				gridDimY = 1 << 0;
 				break;
 			case 10:
-				blockDimX = 1 << 0; // optimize!
-				gridDimX = 1 << 0; 	// optimize!
+				blockDimX = 1 << 0;
+				blockDimY = 1 << 0;
+				gridDimX = 1 << 0;
+				gridDimY = 1 << 0;
 				break;
 			default:
 				break;
