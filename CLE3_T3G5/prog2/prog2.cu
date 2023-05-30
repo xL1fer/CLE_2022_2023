@@ -113,64 +113,64 @@ int main(int argc, char **argv)
 		switch (iter)
 		{
 			case 0:
-				blockDimX = 1 << 0;
+				blockDimX = 1 << 2;
 				blockDimY = 1 << 0;
-				gridDimX = 1 << 10;
-				gridDimY = 1 << 0;
+				gridDimX = 1 << 2;
+				gridDimY = 1 << 6;
 				break;
 			case 1:
 				blockDimX = 1 << 0;
-				blockDimY = 1 << 0;
-				gridDimX = 1 << 9;
-				gridDimY = 1 << 0;
+				blockDimY = 1 << 3;
+				gridDimX = 1 << 2;
+				gridDimY = 1 << 4;
 				break;
 			case 2:
 				blockDimX = 1 << 0;
 				blockDimY = 1 << 0;
-				gridDimX = 1 << 8;
-				gridDimY = 1 << 0;
+				gridDimX = 1 << 0;
+				gridDimY = 1 << 8;
 				break;
 			case 3:
 				blockDimX = 1 << 0;
 				blockDimY = 1 << 0;
-				gridDimX = 1 << 7;
-				gridDimY = 1 << 0;
+				gridDimX = 1 << 1;
+				gridDimY = 1 << 6;
 				break;
 			case 4:
 				blockDimX = 1 << 0;
 				blockDimY = 1 << 0;
-				gridDimX = 1 << 6;
-				gridDimY = 1 << 0;
+				gridDimX = 1 << 0;
+				gridDimY = 1 << 6;
 				break;
 			case 5:
 				blockDimX = 1 << 0;
 				blockDimY = 1 << 0;
-				gridDimX = 1 << 5;
-				gridDimY = 1 << 0;
+				gridDimX = 1 << 0;
+				gridDimY = 1 << 5;
 				break;
 			case 6:
 				blockDimX = 1 << 0;
 				blockDimY = 1 << 0;
-				gridDimX = 1 << 4;
-				gridDimY = 1 << 0;
+				gridDimX = 1 << 0;
+				gridDimY = 1 << 4;
 				break;
 			case 7:
 				blockDimX = 1 << 0;
 				blockDimY = 1 << 0;
-				gridDimX = 1 << 3;
-				gridDimY = 1 << 0;
+				gridDimX = 1 << 0;
+				gridDimY = 1 << 3;
 				break;
 			case 8:
 				blockDimX = 1 << 0;
 				blockDimY = 1 << 0;
-				gridDimX = 1 << 2;
-				gridDimY = 1 << 0;
+				gridDimX = 1 << 0;
+				gridDimY = 1 << 2;
 				break;
 			case 9:
 				blockDimX = 1 << 0;
 				blockDimY = 1 << 0;
-				gridDimX = 1 << 1;
-				gridDimY = 1 << 0;
+				gridDimX = 1 << 0;
+				gridDimY = 1 << 1;
 				break;
 			case 10:
 				blockDimX = 1 << 0;
