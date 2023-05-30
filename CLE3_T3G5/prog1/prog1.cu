@@ -106,7 +106,7 @@ int main(int argc, char **argv)
 
 	(void)get_delta_time();
 	
-	for (int iter = 0; iter <= 6; iter++)
+	for (int iter = 0; iter <= 10; iter++)
 	{
 		printf("Iteration = %d\n", iter);
 		
@@ -148,29 +148,29 @@ int main(int argc, char **argv)
 				gridDimX = 1 << 0;
 				gridDimY = 1 << 5;
 				break;
-			case 6:	// HERE
+			case 6:
 				blockDimX = 1 << 0;
 				blockDimY = 1 << 0;
-				gridDimX = 1 << 4;
-				gridDimY = 1 << 0;
+				gridDimX = 1 << 0;
+				gridDimY = 1 << 4;
 				break;
 			case 7:
 				blockDimX = 1 << 0;
 				blockDimY = 1 << 0;
-				gridDimX = 1 << 3;
-				gridDimY = 1 << 0;
+				gridDimX = 1 << 1;
+				gridDimY = 1 << 2;
 				break;
 			case 8:
 				blockDimX = 1 << 0;
 				blockDimY = 1 << 0;
-				gridDimX = 1 << 2;
-				gridDimY = 1 << 0;
+				gridDimX = 1 << 1;
+				gridDimY = 1 << 1;
 				break;
 			case 9:
 				blockDimX = 1 << 0;
 				blockDimY = 1 << 0;
-				gridDimX = 1 << 1;
-				gridDimY = 1 << 0;
+				gridDimX = 1 << 0;
+				gridDimY = 1 << 1;
 				break;
 			case 10:
 				blockDimX = 1 << 0;
@@ -276,6 +276,9 @@ static bool readIntegerSequence(int** integerSequence, int* sequenceLen, char* f
  *  \brief Verify if the integer sequence is sorted.
  *
  *  Operation carried out by the CPU
+ *
+ *  \param integerSequence sequence to be sorted
+ *  \param sequenceLen length of the sequence
  */
 static void validateArray(int** integerSequence, int* sequenceLen)
 {

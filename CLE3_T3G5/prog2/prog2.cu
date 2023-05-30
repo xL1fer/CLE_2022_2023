@@ -113,48 +113,70 @@ int main(int argc, char **argv)
 		switch (iter)
 		{
 			case 0:
-				blockDimX = 1 << 0; // optimize!
-				gridDimX = 1 << 10;	// optimize!
+				blockDimX = 1 << 0;
+				blockDimY = 1 << 0;
+				gridDimX = 1 << 10;
+				gridDimY = 1 << 0;
 				break;
 			case 1:
-				blockDimX = 1 << 0; // optimize!
-				gridDimX = 1 << 9; 	// optimize!
+				blockDimX = 1 << 0;
+				blockDimY = 1 << 0;
+				gridDimX = 1 << 9;
+				gridDimY = 1 << 0;
 				break;
 			case 2:
-				blockDimX = 1 << 0; // optimize!
-				gridDimX = 1 << 8; 	// optimize!
+				blockDimX = 1 << 0;
+				blockDimY = 1 << 0;
+				gridDimX = 1 << 8;
+				gridDimY = 1 << 0;
 				break;
 			case 3:
-				blockDimX = 1 << 0; // optimize!
-				gridDimX = 1 << 7; 	// optimize!
+				blockDimX = 1 << 0;
+				blockDimY = 1 << 0;
+				gridDimX = 1 << 7;
+				gridDimY = 1 << 0;
 				break;
 			case 4:
-				blockDimX = 1 << 0; // optimize!
-				gridDimX = 1 << 6; 	// optimize!
+				blockDimX = 1 << 0;
+				blockDimY = 1 << 0;
+				gridDimX = 1 << 6;
+				gridDimY = 1 << 0;
 				break;
 			case 5:
-				blockDimX = 1 << 0; // optimize!
-				gridDimX = 1 << 5; 	// optimize!
+				blockDimX = 1 << 0;
+				blockDimY = 1 << 0;
+				gridDimX = 1 << 5;
+				gridDimY = 1 << 0;
 				break;
 			case 6:
-				blockDimX = 1 << 0; // optimize!
-				gridDimX = 1 << 4; 	// optimize!
+				blockDimX = 1 << 0;
+				blockDimY = 1 << 0;
+				gridDimX = 1 << 4;
+				gridDimY = 1 << 0;
 				break;
 			case 7:
-				blockDimX = 1 << 0; // optimize!
-				gridDimX = 1 << 3; 	// optimize!
+				blockDimX = 1 << 0;
+				blockDimY = 1 << 0;
+				gridDimX = 1 << 3;
+				gridDimY = 1 << 0;
 				break;
 			case 8:
-				blockDimX = 1 << 0; // optimize!
-				gridDimX = 1 << 2; 	// optimize!
+				blockDimX = 1 << 0;
+				blockDimY = 1 << 0;
+				gridDimX = 1 << 2;
+				gridDimY = 1 << 0;
 				break;
 			case 9:
-				blockDimX = 1 << 0; // optimize!
-				gridDimX = 1 << 1; 	// optimize!
+				blockDimX = 1 << 0;
+				blockDimY = 1 << 0;
+				gridDimX = 1 << 1;
+				gridDimY = 1 << 0;
 				break;
 			case 10:
-				blockDimX = 1 << 0; // optimize!
-				gridDimX = 1 << 0; 	// optimize!
+				blockDimX = 1 << 0;
+				blockDimY = 1 << 0;
+				gridDimX = 1 << 0;
+				gridDimY = 1 << 0;
 				break;
 			default:
 				break;
@@ -254,6 +276,9 @@ static bool readIntegerSequence(int** integerSequence, int* sequenceLen, char* f
  *  \brief Verify if the integer sequence is sorted.
  *
  *  Operation carried out by the CPU
+ *
+ *  \param integerSequence sequence to be sorted
+ *  \param sequenceLen length of the sequence
  */
 static void validateArray(int** integerSequence, int* sequenceLen)
 {	
