@@ -10,4 +10,4 @@
 
 > Shared Memory does not need to be a structure if is only going to be instantiated once
 
-> Try to better distribute the work to achive more significant performance times
+> Try to better distribute the work to achieve more significant performance times
