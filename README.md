@@ -8,4 +8,4 @@ All projects are done using the C programming language and all of them are diffe
 
 - The second project is focused on using MPI
 
-- The third project is implemented in CUCA C
+- The third project is implemented in CUDA C
